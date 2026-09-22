@@ -89,7 +89,7 @@
   }
   #age-gate.hidden{ display:none; }
   .gate-card{
-    max-width:440px; width:100%;
+    max-width:min(440px, 100%); width:100%;
     background:var(--surface);
     border:1px solid var(--border-strong);
     border-radius:var(--radius);
@@ -124,6 +124,7 @@
   .logo{
     font-family:var(--font-display); font-size:1.7rem; color:var(--champagne);
     white-space:nowrap; letter-spacing:.01em; text-decoration:none;
+    min-width:0; overflow:hidden; text-overflow:ellipsis;
   }
   .logo em{ font-style:italic; color:var(--gold); }
   .header-spacer{ flex:1; }
@@ -162,7 +163,12 @@
   .header-link svg{ width:15px; height:15px; flex:none; }
 
   /* ---------- Layout ---------- */
-  .layout{ display:flex; align-items:flex-start; max-width:1400px; margin:0 auto; position:relative; z-index:1; }
+  /* position:relative (with z-index left auto) is deliberate: it paints above
+     the z-index:0 canvas by document order without opening a stacking
+     context. Adding a z-index here traps the mobile filter drawer's z-index
+     inside this element, and the backdrop — a sibling — then covers the
+     drawer and swallows every tap on it. */
+  .layout{ display:flex; align-items:flex-start; max-width:1400px; margin:0 auto; position:relative; }
   aside.sidebar{
     width:250px; flex:none; position:sticky; top:73px;
     max-height:calc(100vh - 73px); overflow-y:auto; overscroll-behavior:contain;
@@ -449,13 +455,52 @@
     /* the header runs out of room first, so the labels go and the icons stay */
     .header-link span{ display:none; }
     .header-link{ padding:7px 10px; }
+    header.site-header{ gap:10px; padding:12px 16px; }
   }
+
+  /* Below this the header has to fit filter + logo + 2 links + 2 icons on a
+     360px screen. If it doesn't, the phone widens its layout viewport to fit
+     the overflow and renders the whole site zoomed out, so every item here
+     is sized to keep the row inside the screen. */
   @media (max-width: 620px){
     .layout{ display:block; }
     main.content{ padding:18px 14px 70px; }
     .grid.cols-2, .grid.cols-3{ grid-template-columns:1fr; }
     #a11y-panel{ width:88vw; }
-    .search-wrap.open{ max-width:220px; }
+    /* On a phone there isn't room for the logo, the links and a usable text
+       field at once, so opening search hands the row over to the input and
+       everything else steps aside until it closes. */
+    .search-wrap.open{ max-width:none; flex:1 1 auto; }
+    .search-wrap input{ width:100%; max-width:none; }
+    header.search-open .logo,
+    header.search-open .header-links{ display:none; }
+
+    header.site-header{ gap:7px; padding:11px 10px; }
+    .logo{ font-size:1.06rem; }
+    .icon-btn{ width:34px; height:34px; }
+    .icon-btn svg{ width:16px; height:16px; }
+    .header-link{ padding:0; width:34px; height:34px; justify-content:center; border-radius:50%; }
+    .header-links{ gap:5px; }
+
+    .card-title{ font-size:1.12rem; }
+    .card-body{ padding:14px 14px 12px; }
+    .controls-bar{ gap:8px; }
+  }
+
+  @media (max-width: 374px){
+    .logo{ font-size:.95rem; }
+    header.site-header{ gap:5px; padding:10px 8px; }
+    .icon-btn, .header-link{ width:32px; height:32px; }
+  }
+
+  /* Touch devices: the chips are comfortable to read at 25px but fiddly to
+     hit, so they get taller without changing the desktop look. */
+  @media (hover: none){
+    .tag{ padding:7px 12px; }
+    .read-more{ padding:8px 0; }
+    .filter-item{ padding:11px 9px; }
+    .aud-btn{ padding:11px 4px; }
+    .hint-term{ padding:5px 10px; }
   }
 </style>
 </head>
@@ -1381,9 +1426,17 @@
     var searchToggle = document.getElementById('search-toggle');
     var searchWrap = document.getElementById('search-wrap');
     var searchInput = document.getElementById('search-input');
+    var siteHeader = document.querySelector('header.site-header');
     searchToggle.addEventListener('click', function(){
-      searchWrap.classList.toggle('open');
-      if (searchWrap.classList.contains('open')) searchInput.focus();
+      var open = searchWrap.classList.toggle('open');
+      // the stylesheet uses this to clear the header on small screens
+      siteHeader.classList.toggle('search-open', open);
+      if (open) searchInput.focus();
+      else if (state.search){        // closing the box also clears the query
+        state.search = '';
+        searchInput.value = '';
+        applyFilters();
+      }
     });
     var debounceTimer;
     searchInput.addEventListener('input', function(){
