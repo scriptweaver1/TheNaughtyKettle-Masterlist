@@ -235,7 +235,10 @@
   .fav-btn.active{ color:var(--rose); border-color:var(--rose); }
   .fav-btn svg{ width:16px; height:16px; }
 
-  .card-body{ padding:16px 16px 14px; display:flex; flex-direction:column; gap:8px; }
+  /* flex:1 lets the body fill the card's full height, which is what gives
+     .card-links its margin-top:auto something to push against — without it
+     the button sits under the content instead of at the bottom. */
+  .card-body{ padding:16px 16px 14px; display:flex; flex-direction:column; gap:8px; flex:1 1 auto; }
   .card-title{ font-size:1.25rem; color:var(--champagne); line-height:1.25; }
   .card-meta{ display:flex; flex-wrap:wrap; gap:6px 12px; font-size:.78rem; color:var(--text-faint); }
   .card-meta span{ display:inline-flex; align-items:center; gap:4px; }
@@ -276,7 +279,23 @@
   }
   .big-collab-notice .bc-icon{ flex:none; opacity:.9; }
 
-  .card-links{ display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; padding-top:6px; }
+  /* margin-top:auto pins this row to the bottom of the card, so the button
+     lands in the same spot regardless of how much content sits above it. */
+  .card-links{
+    display:flex; flex-wrap:wrap; gap:8px;
+    margin-top:auto; padding-top:14px;
+    justify-content:center; align-items:center;
+  }
+  .link-icon-btn{
+    width:42px; height:42px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    text-decoration:none; transition:filter .15s ease, transform .15s ease;
+  }
+  .link-icon-btn:hover{ filter:brightness(1.12); transform:translateY(-1px); }
+  .link-icon-btn svg{ width:22px; height:22px; display:block; }
+  .link-icon-btn img{ width:22px; height:22px; display:block; }
+  .link-icon-reddit{ background:var(--reddit); color:#fff; }
+
   .link-btn{
     display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border-radius:8px;
     font-size:.76rem; font-weight:700; text-decoration:none; color:#141010; letter-spacing:.02em;
@@ -294,7 +313,7 @@
   .link-c4s{ background:var(--c4s); color:#1d0d17; }
   .link-script{ background:var(--script); color:#10160f; }
   .coming-soon{
-    font-size:.76rem; color:var(--text-faint); font-style:italic; padding:7px 2px;
+    font-size:.76rem; color:var(--text-faint); font-style:italic; padding:11px 2px;
   }
 
   /* ---------- Empty / loading states ---------- */
@@ -484,6 +503,31 @@
      Generated from the masterlist spreadsheet by build_audios_json.py —
      edit the sheet and re-run that, rather than editing audios.json.
      ============================================================ */
+
+  /* ------------------------------------------------------------------
+     The Reddit button's icon.
+
+     This ships with a neutral "go to the discussion" glyph rather than a
+     redrawn Snoo, because the Reddit mark is Reddit's and their brand
+     guidelines ask that it be used as supplied, not traced or restyled.
+
+     To use the real logo: grab the official SVG from
+     https://www.redditinc.com/brand, drop it next to index.html as
+     reddit.svg, and swap the line below for:
+
+         var REDDIT_ICON = '<img src="reddit.svg" alt="">';
+
+     (or paste the file's own <svg>…</svg> here verbatim). The button is
+     sized for a 22px mark either way, so nothing else needs changing.
+     ------------------------------------------------------------------ */
+  var REDDIT_ICON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.7 9.7 0 0 1-2.8-.4L4 21l1.6-4.1A8.1 8.1 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/>' +
+      '<circle cx="8.8" cy="11.5" r="1" fill="currentColor" stroke="none"/>' +
+      '<circle cx="12" cy="11.5" r="1" fill="currentColor" stroke="none"/>' +
+      '<circle cx="15.2" cy="11.5" r="1" fill="currentColor" stroke="none"/>' +
+    '</svg>';
 
   var TYPE_PALETTE = ['#d4af6a','#c2636d','#8fae8b','#8aa6c9','#c99ac9','#c9a45a','#7fb8ac'];
   function typeColor(type){
@@ -781,7 +825,9 @@
   function buildLinksHtml(links){
     var html = '<div class="card-links">';
     if (links.reddit){
-      html += '<a class="link-btn link-reddit" href="'+attr(links.reddit)+'" target="_blank" rel="noopener">Reddit</a>';
+      html += '<a class="link-icon-btn link-icon-reddit" href="'+attr(links.reddit)+'" '+
+              'target="_blank" rel="noopener" title="View the post on Reddit" '+
+              'aria-label="View the post on Reddit">'+REDDIT_ICON+'</a>';
     } else {
       html += '<span class="coming-soon">Coming soon</span>';
     }
