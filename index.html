@@ -33,6 +33,10 @@
     --reddit:#ff4500;
     --patreon:#ff6154;
     --subscribestar:#ff6c40;
+    --soundgasm:#6f8fbf;
+    --audiochan:#7cb8a8;
+    --hotaudio:#45b59a;
+    --c4s:#c76fa8;
     --script:#8fae8b;
     --radius:14px;
     --radius-sm:9px;
@@ -179,6 +183,8 @@
     margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--border);
   }
   .result-count{ color:var(--text-faint); font-size:.85rem; }
+  .last-updated{ opacity:.72; }
+  .last-updated:not(:empty)::before{ content:'·'; margin-right:10px; opacity:.6; }
   .controls-spacer{ flex:1; }
   .view-toggle{ display:flex; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:3px; }
   .view-toggle button{
@@ -275,6 +281,10 @@
   .link-reddit{ background:var(--reddit); color:#fff; }
   .link-patreon{ background:var(--patreon); color:#1a0e0c; }
   .link-subscribestar{ background:var(--subscribestar); color:#1a0e0c; }
+  .link-soundgasm{ background:var(--soundgasm); color:#0d1420; }
+  .link-audiochan{ background:var(--audiochan); color:#0c1714; }
+  .link-hotaudio{ background:var(--hotaudio); color:#08201b; }
+  .link-c4s{ background:var(--c4s); color:#1d0d17; }
   .link-script{ background:var(--script); color:#10160f; }
   .coming-soon{
     font-size:.76rem; color:var(--text-faint); font-style:italic; padding:7px 2px;
@@ -397,6 +407,7 @@
   <main class="content">
     <div class="controls-bar">
       <span class="result-count" id="result-count">Loading…</span>
+      <span class="result-count last-updated" id="last-updated"></span>
       <div class="controls-spacer"></div>
       <button class="toggle-chip" id="fav-toggle">♥ Favourites</button>
       <button class="toggle-chip" id="surprise-btn">✨ Surprise me</button>
@@ -462,8 +473,11 @@
        writer: {name, url} | null,
        editor: {name, url} | null,
        collab: [{name, url}] | null,
-       links: { reddit, patreon, subscribestar, script }
+       links: { reddit, soundgasm, audiochan, hotaudio,
+                patreon, subscribestar, c4s, script }
      }
+     Generated from the masterlist spreadsheet by build_audios_json.py —
+     edit the sheet and re-run that, rather than editing audios.json.
      ============================================================ */
 
   var TYPE_PALETTE = ['#d4af6a','#c2636d','#8fae8b','#8aa6c9','#c99ac9','#c9a45a','#7fb8ac'];
@@ -483,7 +497,8 @@
     cols: parseInt(localStorage.getItem('tnk_cols')||'2',10),
     batchSize: 30,
     rendered: 0,
-    filtered: []
+    filtered: [],
+    lastUpdated: null
   };
 
   var grid = document.getElementById('grid');
@@ -502,7 +517,16 @@
   fetch('./audios.json', {cache:'no-store'})
     .then(function(r){ if(!r.ok) throw new Error('no data'); return r.json(); })
     .then(function(data){
-      state.entries = Array.isArray(data) ? data : [];
+      /* build.py writes {lastUpdated, totalEntries, types, audios:[…]};
+         a bare array is still accepted so older files keep working. */
+      if (Array.isArray(data)){
+        state.entries = data;
+      } else if (data && Array.isArray(data.audios)){
+        state.entries = data.audios;
+        state.lastUpdated = data.lastUpdated || null;
+      } else {
+        state.entries = [];
+      }
       init();
     })
     .catch(function(){
@@ -514,8 +538,19 @@
     buildTypeFilters();
     applyFilters();
     bindControls();
+    showLastUpdated();
     document.getElementById('sort-select').value = state.sort;
     setCols(state.cols);
+  }
+
+  function showLastUpdated(){
+    var el = document.getElementById('last-updated');
+    if (!el || !state.lastUpdated) return;
+    var dt = new Date(state.lastUpdated);
+    if (isNaN(dt.getTime())) return;
+    el.textContent = 'Updated ' + dt.toLocaleDateString(undefined,
+      {year:'numeric', month:'short', day:'numeric'});
+    el.title = dt.toLocaleString();
   }
 
   /* ---------------- Sidebar type filters ---------------- */
@@ -729,8 +764,12 @@
   function buildLinksHtml(links){
     var known = [
       {key:'reddit', label:'Reddit', cls:'link-reddit'},
+      {key:'soundgasm', label:'Soundgasm', cls:'link-soundgasm'},
+      {key:'audiochan', label:'Audiochan', cls:'link-audiochan'},
+      {key:'hotaudio', label:'Hot Audio', cls:'link-hotaudio'},
       {key:'patreon', label:'Patreon', cls:'link-patreon'},
       {key:'subscribestar', label:'SubscribeStar', cls:'link-subscribestar'},
+      {key:'c4s', label:'Clips4Sale', cls:'link-c4s'},
       {key:'script', label:'Script', cls:'link-script'}
     ];
     var html = '<div class="card-links">';
@@ -767,7 +806,11 @@
   }
   function attr(s){ return escapeHtml(s); }
   function formatDate(d){
-    var dt = new Date(d);
+    /* "2026-09-10" parsed by new Date() is UTC midnight, which renders as the
+       9th for anyone west of UTC. Build the date from its parts so the day
+       shown is always the day in the sheet. */
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d||'').trim());
+    var dt = m ? new Date(+m[1], +m[2]-1, +m[3]) : new Date(d);
     if (isNaN(dt.getTime())) return d;
     return dt.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'});
   }
