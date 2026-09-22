@@ -256,6 +256,33 @@
   }
   .tag:hover{ border-color:var(--gold); color:var(--gold-bright); }
   .tag.more{ color:var(--gold); border-style:dashed; }
+  /* Tags that caused this card to match the current search. */
+  .tag.tag-hit{ background:rgba(212,175,106,.16); border-color:var(--gold); color:var(--gold-bright); }
+  .tag.tag-near{ border-color:rgba(194,99,109,.5); color:#d8909a; }
+
+  /* Divider between the direct hits and the looser, concept-based ones. */
+  .results-divider{
+    grid-column:1/-1;
+    display:flex; align-items:center; gap:14px;
+    margin:10px 2px 2px; color:var(--text-faint); font-size:.8rem;
+  }
+  .results-divider::before, .results-divider::after{
+    content:''; height:1px; background:var(--border); flex:1;
+  }
+  .results-divider span{ white-space:nowrap; }
+
+  .search-hint{
+    width:100%; font-size:.8rem; color:var(--text-faint);
+    margin:-6px 2px 14px; line-height:1.5;
+  }
+  .search-hint:empty{ display:none; }
+  .search-hint b{ color:var(--gold); font-weight:600; }
+  .search-hint .hint-term{
+    display:inline-block; padding:1px 8px; margin:0 2px 3px 0; border-radius:999px;
+    background:var(--surface-raised); border:1px solid var(--border); color:var(--text-dim);
+    cursor:pointer; font-size:.74rem;
+  }
+  .search-hint .hint-term:hover{ border-color:var(--gold); color:var(--gold-bright); }
 
   /* Every credit — writer, editor, voices — gets its own line, so a long
      name never wraps away from the label it belongs to. */
@@ -295,6 +322,12 @@
   .link-icon-btn svg{ width:22px; height:22px; display:block; }
   .link-icon-btn img{ width:22px; height:22px; display:block; }
   .link-icon-reddit{ background:var(--reddit); color:#fff; }
+
+  /* Reddit's official icon already draws its own orange disc. Painting it on
+     an orange button hides everything but the white inner shape, so in that
+     mode the button drops its background and the artwork fills it instead. */
+  .link-icon-btn.is-full-logo{ background:none; }
+  .link-icon-btn.is-full-logo img{ width:100%; height:100%; border-radius:50%; }
 
   .link-btn{
     display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border-radius:8px;
@@ -448,6 +481,7 @@
       </div>
     </div>
 
+    <div class="search-hint" id="search-hint"></div>
     <div class="grid cols-2" id="grid"></div>
     <div class="loading-row" id="loading-row" style="display:none;">Loading more…</div>
     <div class="sentinel" id="sentinel"></div>
@@ -488,7 +522,34 @@
 (function(){
   "use strict";
 
-  var REDDIT_ICON = '<img src="Reddit_Icon2_Color.svg" alt="">';
+  /* ------------------------------------------------------------------
+     The Reddit button's icon.
+
+     REDDIT_ICON_IS_FULL_LOGO tells the button whether the artwork brings
+     its own orange disc:
+       true  — Reddit's official icon (the one with the circle). The button
+               turns its own background off and lets the artwork fill it,
+               otherwise orange-on-orange hides all but the white shape.
+       false — a bare mark or the fallback glyph below, drawn on the
+               orange button.
+
+     If the file is missing or misnamed, the glyph in REDDIT_ICON_FALLBACK
+     is used instead, so the button is never blank.
+     ------------------------------------------------------------------ */
+  /* This must match the file in the repo character for character — GitHub
+     Pages serves case-sensitively, so Reddit_Icon_2Color.svg and
+     reddit_icon_2color.svg are two different files as far as it cares. */
+  var REDDIT_ICON = '<img src="Reddit_Icon_2Color.svg" alt="">';
+  var REDDIT_ICON_IS_FULL_LOGO = true;
+
+  var REDDIT_ICON_FALLBACK =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.7 9.7 0 0 1-2.8-.4L4 21l1.6-4.1A8.1 8.1 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/>' +
+      '<circle cx="8.8" cy="11.5" r="1" fill="currentColor" stroke="none"/>' +
+      '<circle cx="12" cy="11.5" r="1" fill="currentColor" stroke="none"/>' +
+      '<circle cx="15.2" cy="11.5" r="1" fill="currentColor" stroke="none"/>' +
+    '</svg>';
 
   var TYPE_PALETTE = ['#d4af6a','#c2636d','#8fae8b','#8aa6c9','#c99ac9','#c9a45a','#7fb8ac'];
   function typeColor(type){
@@ -508,12 +569,290 @@
     batchSize: 30,
     rendered: 0,
     filtered: [],
-    lastUpdated: null
+    lastUpdated: null,
+    relatedStart: -1,
+    tagIndex: null
   };
 
   var grid = document.getElementById('grid');
   var resultCount = document.getElementById('result-count');
   var loadingRow = document.getElementById('loading-row');
+
+  /* ==================================================================
+     SEARCH
+
+     Three passes, in descending confidence:
+
+       direct   the word is in the title, a tag, the series or the type,
+                or is a known synonym of one (fdom/femdom, joi/guided
+                masturbation). These are the "exact matches".
+       fuzzy    the word is within a typo or two of a real tag —
+                "whsiper" finds "whisper". Scored lower.
+       related  tags that travel with the ones matched directly, taken
+                from the co-occurrence map build.py ships in the JSON.
+                "sleep aid" pulls in calm, pond, wind chimes. Scored
+                lowest, and never enough on its own to rank as exact.
+
+     A card lands in the exact group if anything matched it directly, and
+     in the related group otherwise, so the two are always separated in
+     the results even when a related hit scores well.
+     ================================================================== */
+
+  var FIELD_WEIGHT = { title:10, tag:7, series:6, type:5, description:2 };
+  var SOURCE_WEIGHT = { direct:1, synonym:0.9, fuzzy:0.45, related:0.18 };
+
+  /* Without these the related pass swamps everything: expand one common tag
+     into eight friends and nearly every audio matches something, so "garden"
+     would return 220 of 224. A related-only card has to clear a real bar —
+     roughly two related tags rather than one — and the tail is capped. */
+  var RELATED_EXPAND_PER_TAG = 5;   // friends pulled in per directly-matched tag
+  var RELATED_MIN_SCORE = 2.6;      // a single related tag scores ~1.3
+  var RELATED_MAX_RESULTS = 24;
+
+  var search = {
+    tagList: [],      // every distinct normalised tag in the catalogue
+    related: {},      // tag -> related tags (from build.py)
+    synonymOf: {},    // word -> every word in its synonym group
+    ready: false
+  };
+
+  function normText(s){
+    return String(s == null ? '' : s)
+      .toLowerCase()
+      .replace(/[‘’']/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+
+  /* Crude but effective for this vocabulary: whispers/whispering/whispery
+     all reduce to "whisper", moans/moaning to "moan". */
+  function stem(word){
+    if (word.length < 5) return word;
+    return word
+      .replace(/(ings|ing|ies|ied|ers|er|ed|es|s|y)$/, '')
+      .replace(/(.)\1$/, '$1');
+  }
+
+  /* Levenshtein, abandoned as soon as it exceeds max — most comparisons
+     bail on the length check alone, which keeps a full vocabulary sweep
+     cheap enough to run on every keystroke. */
+  function editDistance(a, b, max){
+    if (a === b) return 0;
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    var prev = [], cur = [], i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++){
+      cur[0] = i;
+      var best = cur[0];
+      for (j = 1; j <= b.length; j++){
+        cur[j] = Math.min(
+          prev[j] + 1,
+          cur[j-1] + 1,
+          prev[j-1] + (a.charAt(i-1) === b.charAt(j-1) ? 0 : 1)
+        );
+        if (cur[j] < best) best = cur[j];
+      }
+      if (best > max) return max + 1;
+      for (j = 0; j <= b.length; j++) prev[j] = cur[j];
+    }
+    return prev[b.length];
+  }
+
+  function buildSearchIndex(tagIndex){
+    var seen = Object.create(null);
+    state.entries.forEach(function(e){
+      e._title = normText(e.title);
+      e._series = normText(e.series);
+      e._type = normText(e.type);
+      e._desc = normText(e.description);
+      e._tags = (e.tags||[]).map(function(t){
+        var n = normText(t);
+        if (n && !seen[n]) seen[n] = true;
+        return n;
+      });
+      e._tagSet = Object.create(null);
+      e._tags.forEach(function(t){ e._tagSet[t] = true; });
+      e._words = Object.create(null);
+      (e._title + ' ' + e._series + ' ' + e._type + ' ' + e._tags.join(' '))
+        .split(' ').forEach(function(w){ if (w) e._words[stem(w)] = true; });
+    });
+    search.tagList = Object.keys(seen);
+    search.related = (tagIndex && tagIndex.related) || {};
+
+    search.synonymOf = Object.create(null);
+    ((tagIndex && tagIndex.synonyms) || []).forEach(function(group){
+      group.forEach(function(word){
+        var key = normText(word);
+        if (!key) return;
+        search.synonymOf[key] = (search.synonymOf[key] || []).concat(
+          group.map(normText).filter(function(w){ return w && w !== key; })
+        );
+      });
+    });
+    search.ready = true;
+  }
+
+  /* Turn the raw query into weighted terms, each tagged with where it came
+     from so the scorer knows whether a hit counts as exact or related. */
+  function expandQuery(raw){
+    var phrase = normText(raw);
+    if (!phrase) return null;
+
+    var tokens = phrase.split(' ').filter(function(t){ return t.length > 1; });
+    if (!tokens.length) tokens = phrase.split(' ').filter(Boolean);
+
+    /* Each term remembers which of the user's words it stands for, so the
+       scorer can tell "matched every word they typed" from "matched one of
+       them". Terms standing for the whole phrase use -1. */
+    var terms = [];          // {text, source, stem, weight, token}
+    var added = Object.create(null);
+    function add(text, source, weight, token){
+      var key = text + '|' + source;
+      if (!text || added[key]) return;
+      added[key] = true;
+      terms.push({ text:text, source:source, stem:stem(text),
+                   weight: (weight == null ? 1 : weight),
+                   token: (token == null ? -1 : token) });
+    }
+
+    add(phrase, 'direct', 1, -1);
+    tokens.forEach(function(t, i){ add(t, 'direct', 1, i); });
+
+    // synonyms of the whole phrase and of each word
+    (search.synonymOf[phrase] || []).forEach(function(s){ add(s, 'synonym', 1, -1); });
+    tokens.forEach(function(t, i){
+      (search.synonymOf[t] || []).forEach(function(s){ add(s, 'synonym', 1, i); });
+    });
+
+    // typo tolerance, measured against the real tag vocabulary.
+    // A one-character slip is a far better bet than a two-character one,
+    // so it carries more weight rather than being treated the same.
+    var fuzzyFound = [];
+    tokens.forEach(function(t, i){
+      if (t.length < 4) return;
+      var budget = t.length <= 5 ? 1 : 2;
+      search.tagList.forEach(function(tag){
+        if (tag === t || tag.indexOf(t) !== -1) return;   // already a direct hit
+        var d = editDistance(t, tag, budget);
+        if (d <= budget){
+          add(tag, 'fuzzy', d === 1 ? 1 : 0.5, i);
+          if (fuzzyFound.indexOf(tag) === -1) fuzzyFound.push(tag);
+        }
+      });
+    });
+
+    // concepts that travel with whatever matched directly
+    var relatedFound = [];
+    var directHits = terms
+      .filter(function(t){ return t.source === 'direct' || t.source === 'synonym'; })
+      .map(function(t){ return t.text; });
+    directHits.forEach(function(t){
+      (search.related[t] || []).slice(0, RELATED_EXPAND_PER_TAG).forEach(function(r){
+        add(r, 'related');
+        if (relatedFound.indexOf(r) === -1) relatedFound.push(r);
+      });
+    });
+
+    return { phrase:phrase, tokens:tokens, terms:terms,
+             fuzzy:fuzzyFound, related:relatedFound };
+  }
+
+  function scoreEntry(e, q){
+    var score = 0, phraseHit = false;
+    var hitTags = Object.create(null), nearTags = Object.create(null);
+    var tokenHit = [];   // which of the user's words were matched directly
+
+    for (var i = 0; i < q.terms.length; i++){
+      var term = q.terms[i];
+      var sw = SOURCE_WEIGHT[term.source] * term.weight;
+      var matched = false;
+
+      if (e._tagSet[term.text]){
+        score += FIELD_WEIGHT.tag * sw * 1.4; matched = true;
+        (term.source === 'related' || term.source === 'fuzzy' ? nearTags : hitTags)[term.text] = true;
+      } else {
+        for (var t = 0; t < e._tags.length; t++){
+          if (e._tags[t].indexOf(term.text) !== -1){
+            score += FIELD_WEIGHT.tag * sw; matched = true;
+            (term.source === 'related' || term.source === 'fuzzy' ? nearTags : hitTags)[e._tags[t]] = true;
+            break;
+          }
+        }
+      }
+
+      if (e._title.indexOf(term.text) !== -1){
+        score += FIELD_WEIGHT.title * sw * (e._title === term.text ? 2 : 1); matched = true;
+      }
+      if (e._series && e._series.indexOf(term.text) !== -1){ score += FIELD_WEIGHT.series * sw; matched = true; }
+      if (e._type && e._type.indexOf(term.text) !== -1){ score += FIELD_WEIGHT.type * sw; matched = true; }
+      if (e._desc && e._desc.indexOf(term.text) !== -1){ score += FIELD_WEIGHT.description * sw; matched = true; }
+
+      // stem match, so "whispering" still finds "whisper"
+      if (!matched && term.stem && term.stem.length > 3 && e._words[term.stem]){
+        score += FIELD_WEIGHT.tag * sw * 0.7; matched = true;
+      }
+
+      if (matched && (term.source === 'direct' || term.source === 'synonym')){
+        if (term.token === -1) phraseHit = true;
+        else tokenHit[term.token] = true;
+      }
+    }
+
+    if (!score) return null;
+
+    /* "gentle fdom" should mean both words, not either — matching only
+       "gentle" puts a card in the related block rather than the exact one.
+       A hit on the whole phrase counts for all of it. */
+    var allTokens = q.tokens.length > 0;
+    for (var k = 0; k < q.tokens.length; k++){
+      if (!tokenHit[k]) { allTokens = false; break; }
+    }
+    var direct = phraseHit || allTokens;
+    if (direct && q.tokens.length > 1) score *= 1.25;   // reward matching the lot
+
+    return { score:score, direct:direct, hitTags:hitTags, nearTags:nearTags };
+  }
+
+  function runSearch(list, raw){
+    var q = expandQuery(raw);
+    if (!q) return { list:list, relatedStart:-1, meta:null };
+
+    var scored = [];
+    list.forEach(function(e){
+      var r = scoreEntry(e, q);
+      if (r){
+        e._hitTags = r.hitTags;
+        e._nearTags = r.nearTags;
+        scored.push({ e:e, score:r.score, direct:r.direct });
+      }
+    });
+
+    scored.sort(function(a, b){
+      if (a.direct !== b.direct) return a.direct ? -1 : 1;   // exact block first
+      if (b.score !== a.score) return b.score - a.score;
+      return (b.e.date||'').localeCompare(a.e.date||'');
+    });
+
+    var exact = [], related = [];
+    scored.forEach(function(s){
+      if (s.direct) exact.push(s);
+      else if (s.score >= RELATED_MIN_SCORE) related.push(s);
+    });
+    related = related.slice(0, RELATED_MAX_RESULTS);
+
+    // If nothing matched directly, the looser hits are all there is —
+    // show them as the results rather than as an empty page plus a tail.
+    var onlyRelated = !exact.length;
+    var final = exact.concat(related);
+
+    return {
+      list: final.map(function(s){ return s.e; }),
+      relatedStart: (!onlyRelated && related.length) ? exact.length : -1,
+      meta: { exact:exact.length, related:related.length,
+              onlyRelated:onlyRelated,
+              fuzzy:q.fuzzy, relatedTerms:q.related }
+    };
+  }
 
   /* ---------------- Age gate ---------------- */
   var gate = document.getElementById('age-gate');
@@ -534,6 +873,7 @@
       } else if (data && Array.isArray(data.audios)){
         state.entries = data.audios;
         state.lastUpdated = data.lastUpdated || null;
+        state.tagIndex = data.tagIndex || null;
       } else {
         state.entries = [];
       }
@@ -545,6 +885,7 @@
     });
 
   function init(){
+    buildSearchIndex(state.tagIndex);
     buildTypeFilters();
     applyFilters();
     bindControls();
@@ -589,27 +930,38 @@
 
   /* ---------------- Filtering / sorting ---------------- */
   function applyFilters(){
-    var q = state.search.trim().toLowerCase();
+    var raw = state.search.trim();
     var list = state.entries.filter(function(e){
       if (state.favOnly && !state.favourites.has(e.id)) return false;
       if (state.typeFilters.size && !state.typeFilters.has(e.type||'Uncategorized')) return false;
-      if (q){
-        var hay = [e.title, e.series, e.description, (e.tags||[]).join(' ')].join(' ').toLowerCase();
-        if (hay.indexOf(q) === -1) return false;
-      }
       return true;
     });
 
-    list.sort(function(a,b){
-      if (state.sort === 'az') return (a.title||'').localeCompare(b.title||'');
-      var da = new Date(a.date||0).getTime(), db = new Date(b.date||0).getTime();
-      return state.sort === 'oldest' ? da - db : db - da;
-    });
+    state.relatedStart = -1;
+    var meta = null;
+
+    if (raw){
+      var found = runSearch(list, raw);
+      list = found.list;
+      state.relatedStart = found.relatedStart;
+      meta = found.meta;
+    } else {
+      list.sort(function(a,b){
+        if (state.sort === 'az') return (a.title||'').localeCompare(b.title||'');
+        var da = new Date(a.date||0).getTime(), db = new Date(b.date||0).getTime();
+        return state.sort === 'oldest' ? da - db : db - da;
+      });
+    }
 
     state.filtered = list;
     state.rendered = 0;
     grid.innerHTML = '';
-    resultCount.textContent = list.length + (list.length === 1 ? ' entry' : ' entries');
+
+    var label = list.length + (list.length === 1 ? ' entry' : ' entries');
+    if (raw && list.length) label += ' · by relevance';
+    resultCount.textContent = label;
+    renderSearchHint(raw, meta);
+
     if (!list.length){
       grid.style.display = 'block';
       grid.innerHTML = emptyStateHtml();
@@ -617,6 +969,37 @@
       grid.style.display = 'grid';
       renderNextBatch();
     }
+  }
+
+  function renderSearchHint(raw, meta){
+    var el = document.getElementById('search-hint');
+    if (!el) return;
+    if (!raw || !meta){ el.innerHTML = ''; return; }
+
+    var bits = [];
+    if (meta.fuzzy && meta.fuzzy.length){
+      bits.push('Close spellings: ' + meta.fuzzy.slice(0,6).map(termChip).join(''));
+    }
+    if (meta.relatedTerms && meta.relatedTerms.length){
+      bits.push('Related concepts: ' + meta.relatedTerms.slice(0,10).map(termChip).join(''));
+    }
+    if (!meta.exact && meta.related){
+      bits.unshift('<b>No direct matches</b> — showing related audios.');
+    }
+    el.innerHTML = bits.join('<br>');
+
+    el.querySelectorAll('.hint-term').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var input = document.getElementById('search-input');
+        input.value = chip.dataset.term;
+        state.search = chip.dataset.term;
+        applyFilters();
+      });
+    });
+  }
+
+  function termChip(t){
+    return '<span class="hint-term" data-term="'+attr(t)+'">'+escapeHtml(t)+'</span>';
   }
 
   function emptyStateHtml(){
@@ -629,9 +1012,20 @@
 
   /* ---------------- Progressive rendering ---------------- */
   function renderNextBatch(){
-    var next = state.filtered.slice(state.rendered, state.rendered + state.batchSize);
+    var start = state.rendered;
+    var next = state.filtered.slice(start, start + state.batchSize);
     var frag = document.createDocumentFragment();
-    next.forEach(function(e){ frag.appendChild(buildCard(e)); });
+    next.forEach(function(e, i){
+      // the divider goes in at the exact point the related block begins,
+      // whichever batch that index happens to land in
+      if (state.relatedStart >= 0 && start + i === state.relatedStart){
+        var d = document.createElement('div');
+        d.className = 'results-divider';
+        d.innerHTML = '<span>Related to your search</span>';
+        frag.appendChild(d);
+      }
+      frag.appendChild(buildCard(e));
+    });
     grid.appendChild(frag);
     state.rendered += next.length;
     loadingRow.style.display = state.rendered < state.filtered.length ? 'block' : 'none';
@@ -664,7 +1058,7 @@
     if (e.series) meta += '<span class="card-series">'+escapeHtml(e.series)+'</span>';
     meta += '</div>';
 
-    var tagsHtml = buildTagsHtml(e.tags||[]);
+    var tagsHtml = buildTagsHtml(e.tags||[], e);
     var descHtml = buildDescHtml(e.description||'');
     var creditsHtml = buildCreditsHtml(e);
     var bigCollabHtml = buildBigCollabHtml(e);
@@ -687,6 +1081,8 @@
       ev.stopPropagation();
       toggleFav(e.id, this);
     });
+
+    wireIconFallback(card);
 
     var moreTagBtns = card.querySelectorAll('.tag[data-filter-tag]');
     moreTagBtns.forEach(function(btn){
@@ -722,23 +1118,48 @@
     return card;
   }
 
-  function buildTagsHtml(tags){
+  function buildTagsHtml(tags, entry){
     if (!tags.length) return '';
+
+    /* While a search is running, the tags that caused the match are pulled
+       to the front and highlighted, so it's obvious why a card is here —
+       especially in the related block, where the reason isn't the title. */
+    var hits = (entry && entry._hitTags) || {};
+    var near = (entry && entry._nearTags) || {};
+    var searching = !!state.search.trim();
+    if (searching){
+      tags = tags.slice().sort(function(a, b){
+        return tagRank(a, hits, near) - tagRank(b, hits, near);
+      });
+    }
+
+    function cls(t){
+      var n = normText(t);
+      if (searching && hits[n]) return ' tag-hit';
+      if (searching && near[n]) return ' tag-near';
+      return '';
+    }
+
     var visibleCount = 6;
     var visible = tags.slice(0, visibleCount);
     var hidden = tags.slice(visibleCount);
     var html = '<div class="card-tags" data-hidden-count="'+hidden.length+'">';
     visible.forEach(function(t){
-      html += '<span class="tag" data-filter-tag="'+attr(t)+'">'+escapeHtml(t)+'</span>';
+      html += '<span class="tag'+cls(t)+'" data-filter-tag="'+attr(t)+'">'+escapeHtml(t)+'</span>';
     });
     hidden.forEach(function(t){
-      html += '<span class="tag hidden-tag" data-filter-tag="'+attr(t)+'" style="display:none;">'+escapeHtml(t)+'</span>';
+      html += '<span class="tag hidden-tag'+cls(t)+'" data-filter-tag="'+attr(t)+'" style="display:none;">'+escapeHtml(t)+'</span>';
     });
     if (hidden.length){
       html += '<span class="tag more" data-role="toggle">+'+hidden.length+' more</span>';
     }
     html += '</div>';
     return html;
+  }
+
+  function tagRank(t, hits, near){
+    var n = normText(t);
+    return hits[n] ? 0 : (near[n] ? 1 : 2);
   }
 
   function buildDescHtml(desc){
@@ -786,7 +1207,9 @@
   function buildLinksHtml(links){
     var html = '<div class="card-links">';
     if (links.reddit){
-      html += '<a class="link-icon-btn link-icon-reddit" href="'+attr(links.reddit)+'" '+
+      html += '<a class="link-icon-btn link-icon-reddit'+
+              (REDDIT_ICON_IS_FULL_LOGO ? ' is-full-logo' : '')+'" '+
+              'href="'+attr(links.reddit)+'" '+
               'target="_blank" rel="noopener" title="View the post on Reddit" '+
               'aria-label="View the post on Reddit">'+REDDIT_ICON+'</a>';
     } else {
@@ -794,6 +1217,22 @@
     }
     html += '</div>';
     return html;
+  }
+
+  /* If the icon file can't be loaded — missing, renamed, wrong folder — swap
+     in the built-in glyph so the button still reads as a link. A cached
+     failure can land before this runs, hence the naturalWidth check. */
+  function wireIconFallback(card){
+    var img = card.querySelector('.link-icon-btn img');
+    if (!img) return;
+    function useFallback(){
+      var btn = img.closest('.link-icon-btn');
+      if (!btn) return;
+      btn.classList.remove('is-full-logo');
+      btn.innerHTML = REDDIT_ICON_FALLBACK;
+    }
+    if (img.complete && img.naturalWidth === 0) useFallback();
+    else img.addEventListener('error', useFallback);
   }
 
   function heartSvg(){
