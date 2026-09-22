@@ -543,10 +543,17 @@ def build(rows):
         if entry_type == "Uncategorized":
             notes["no type"] += 1
 
-        tags = parse_tags(get("Tags"))
-        audience = audience_from_tags(tags)
+        all_tags = parse_tags(get("Tags"))
+        audience = audience_from_tags(all_tags)
         if not audience:
             notes["no audience tag (F4M / F4A / …)"] += 1
+
+        # The audience now has its own filter in the sidebar, so F4M / F4A /
+        # FF4M and friends are dropped from the chips on the card. They also
+        # sat on nearly every audio, which made them turn up as "related
+        # concepts" for almost any search. The site still matches them: a
+        # query for f4m is answered from the audience field above.
+        tags = [t for t in all_tags if not AUDIENCE_RE.fullmatch(t.strip())]
 
         entries.append({
             "id": entry_id,
