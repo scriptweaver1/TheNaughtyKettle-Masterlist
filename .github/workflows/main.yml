@@ -1,0 +1,117 @@
+name: Build audios.json
+
+# Rebuilds audios.json from the published spreadsheet and commits it when
+# something actually changed. Deploys that watch this branch (Cloudflare
+# Pages, Netlify, GitHub Pages) pick the commit up on their own.
+#
+# Setup, once:
+#   1. Google Sheets -> File -> Share -> Publish to web -> the masterlist
+#      sheet -> Comma-separated values (.csv) -> Publish.
+#   2. Repo -> Settings -> Secrets and variables -> Actions -> New
+#      repository secret, named SHEET_CSV_URL, holding that URL.
+#   3. Repo -> Settings -> Actions -> General -> Workflow permissions ->
+#      "Read and write permissions", so the job can push the commit.
+#
+# Run it by hand any time from the Actions tab -> Build audios.json ->
+# Run workflow, which is the quickest way to publish a fresh row.
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"   # every 3 hours (UTC)
+  workflow_dispatch:         # manual run from the Actions tab
+    inputs:
+      allow_large_drop:
+        description: "Commit even if the entry count drops sharply (use after deleting many rows on purpose)"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - build.py
+      - .github/workflows/build.yml
+
+concurrency:
+  group: build-audios-json
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Remember how many entries are currently published
+        id: before
+        run: |
+          if [ -f audios.json ]; then
+            count=$(python -c "import json;d=json.load(open('audios.json'));print(len(d['audios']) if isinstance(d,dict) else len(d))")
+          else
+            count=0
+          fi
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "Currently published: $count entries"
+
+      - name: Build audios.json from the spreadsheet
+        env:
+          SHEET_CSV_URL: ${{ secrets.SHEET_CSV_URL }}
+        run: |
+          if [ -z "$SHEET_CSV_URL" ]; then
+            echo "::error::The SHEET_CSV_URL secret is not set. See the comments at the top of this workflow."
+            exit 1
+          fi
+          python build.py
+
+      # A published sheet that is momentarily unavailable, renamed, or
+      # unshared can come back as a valid but nearly empty CSV. Committing
+      # that would silently empty the site, so a large drop stops the run
+      # and leaves the previous audios.json in place.
+      - name: Sanity-check the result
+        env:
+          BEFORE: ${{ steps.before.outputs.count }}
+          ALLOW_DROP: ${{ inputs.allow_large_drop }}
+        run: |
+          python - <<'PY'
+          import json, os, sys
+
+          data = json.load(open("audios.json", encoding="utf-8"))
+          entries = data["audios"] if isinstance(data, dict) else data
+          before = int(os.environ["BEFORE"])
+          after = len(entries)
+          allow_drop = os.environ.get("ALLOW_DROP", "").lower() == "true"
+          print(f"{before} entries before, {after} after")
+
+          if after == 0:
+              sys.exit("Refusing to commit: the build produced no entries.")
+          if before and after < before * 0.8 and not allow_drop:
+              sys.exit(
+                  f"Refusing to commit: entries fell from {before} to {after} "
+                  f"(more than 20%). If you meant to remove that many rows, run "
+                  f"the workflow from the Actions tab with 'Commit even if the "
+                  f"entry count drops sharply' ticked."
+              )
+          missing = [e["id"] for e in entries if not e.get("title") or not e.get("date")]
+          if missing:
+              print(f"::warning::{len(missing)} entries have no title or no date")
+          PY
+
+      - name: Commit if anything changed
+        run: |
+          if git diff --quiet -- audios.json; then
+            echo "No changes; nothing to commit."
+            exit 0
+          fi
+          count=$(python -c "import json;print(json.load(open('audios.json'))['totalEntries'])")
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add audios.json
+          git commit -m "Update audios.json from the spreadsheet ($count entries)"
+          git push
