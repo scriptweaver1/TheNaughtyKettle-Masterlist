@@ -1,10 +1,9 @@
 {
- "lastUpdated": "2026-09-22T20:57:08Z",
+ "lastUpdated": "2026-09-22T21:01:31Z",
  "totalEntries": 224,
  "types": [
   "Big Collab",
   "Collab",
-  "For Fun",
   "Improv",
   "Kettlecast",
   "Narrative",
@@ -3890,7 +3889,7 @@
    "date": "2026-05-20",
    "duration": "1:00",
    "series": null,
-   "type": "For Fun",
+   "type": "Improv",
    "audience": [
     "A"
    ],
@@ -7111,7 +7110,7 @@
    "date": "2025-11-05",
    "duration": "1:00",
    "series": null,
-   "type": "For Fun",
+   "type": "Poetry",
    "audience": [
     "A"
    ],
@@ -9484,7 +9483,7 @@
    "date": "2025-07-19",
    "duration": "0:27",
    "series": null,
-   "type": "For Fun",
+   "type": "Improv",
    "audience": [
     "A"
    ],
