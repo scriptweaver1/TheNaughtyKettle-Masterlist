@@ -488,39 +488,7 @@
 (function(){
   "use strict";
 
-  /* ============================================================
-     DATA SCHEMA (./audios.json — array of objects):
-     {
-       id, title, date: "YYYY-MM-DD", duration: "12:34",
-       series, type, tags: [..], description,
-       image: "url" | null, exclusive: bool,
-       writer: {name, url} | null,
-       editor: {name, url} | null,
-       collab: [{name, url}] | null,
-       links: { reddit, soundgasm, audiochan, hotaudio,
-                patreon, subscribestar, c4s, script }
-     }
-     Generated from the masterlist spreadsheet by build_audios_json.py —
-     edit the sheet and re-run that, rather than editing audios.json.
-     ============================================================ */
-
-  /* ------------------------------------------------------------------
-     The Reddit button's icon.
-
-     This ships with a neutral "go to the discussion" glyph rather than a
-     redrawn Snoo, because the Reddit mark is Reddit's and their brand
-     guidelines ask that it be used as supplied, not traced or restyled.
-
-     To use the real logo: grab the official SVG from
-     https://www.redditinc.com/brand, drop it next to index.html as
-     reddit.svg, and swap the line below for:
-
-         var REDDIT_ICON = '<img src="reddit.svg" alt="">';
-
-     (or paste the file's own <svg>…</svg> here verbatim). The button is
-     sized for a 22px mark either way, so nothing else needs changing.
-     ------------------------------------------------------------------ */
-  var REDDIT_ICON = '<img src="Reddit_Icon2Color.svg" alt="">';
+  var REDDIT_ICON = '<img src="Reddit_Icon2_Color.svg" alt="">';
 
   var TYPE_PALETTE = ['#d4af6a','#c2636d','#8fae8b','#8aa6c9','#c99ac9','#c9a45a','#7fb8ac'];
   function typeColor(type){
