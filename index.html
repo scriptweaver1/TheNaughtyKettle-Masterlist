@@ -215,28 +215,21 @@
   .card:hover{ border-color:var(--border-strong); }
   .card.highlight{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold), 0 0 30px rgba(212,175,106,.25); }
 
-  .grid.cols-1 .card{ flex-direction:row; }
-  .grid.cols-1 .card .card-media{ width:220px; flex:none; }
-  .grid.cols-1 .card .card-body{ flex:1; }
-
-  .card-media{ position:relative; aspect-ratio:16/10; background:var(--surface-raised); overflow:hidden; }
-  .card-media img{ width:100%; height:100%; object-fit:cover; }
-  .card-media .placeholder{
-    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-    font-size:2.4rem; color:var(--text-faint); background:
-      linear-gradient(135deg, var(--surface-raised), var(--surface));
-  }
+  /* Badges sit in a row at the top of the card body now that there is no
+     image area to overlay them on. */
+  .card-badges{ display:flex; flex-wrap:wrap; gap:6px; padding-right:40px; }
   .badge{
-    position:absolute; top:10px; padding:3px 10px; border-radius:999px;
+    padding:3px 10px; border-radius:999px;
     font-size:.68rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
   }
-  .badge-exclusive{ right:10px; background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#1a1310; }
-  .badge-type{ left:10px; background:rgba(20,15,12,.78); border:1px solid var(--border-strong); color:var(--gold-bright); }
+  .badge-exclusive{ background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#1a1310; }
+  .badge-type{ background:var(--surface-raised); border:1px solid var(--border-strong); color:var(--gold-bright); }
 
   .fav-btn{
-    position:absolute; bottom:10px; right:10px; width:34px; height:34px; border-radius:50%;
-    background:rgba(20,15,12,.72); border:1px solid var(--border-strong); color:var(--text-dim);
+    position:absolute; top:12px; right:12px; width:32px; height:32px; border-radius:50%;
+    background:var(--surface-raised); border:1px solid var(--border); color:var(--text-faint);
     cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s ease;
+    z-index:1;
   }
   .fav-btn:hover{ color:var(--rose); border-color:var(--rose); }
   .fav-btn.active{ color:var(--rose); border-color:var(--rose); }
@@ -261,15 +254,27 @@
   .tag:hover{ border-color:var(--gold); color:var(--gold-bright); }
   .tag.more{ color:var(--gold); border-style:dashed; }
 
-  .card-credits{ font-size:.76rem; color:var(--text-faint); }
+  /* Every credit — writer, editor, voices — gets its own line, so a long
+     name never wraps away from the label it belongs to. */
+  .card-credits{
+    display:flex; flex-direction:column; gap:5px;
+    font-size:.76rem; color:var(--text-faint);
+    padding:10px 0 2px; border-top:1px solid var(--border);
+  }
+  .credit{ display:flex; gap:7px; align-items:baseline; }
+  .credit-label{ flex:none; color:var(--text-faint); opacity:.85; }
+  .credit-name{ color:var(--gold); }
   .card-credits a{ color:var(--gold); text-decoration:none; }
   .card-credits a:hover{ text-decoration:underline; }
 
-  .collab-notice{
-    font-size:.78rem; padding:8px 10px; border-radius:8px; background:rgba(194,99,109,.1);
-    border:1px solid rgba(194,99,109,.3); color:var(--rose);
+  /* Big Collabs have too many voices to list, so the card points at the post. */
+  .big-collab-notice{
+    display:flex; gap:8px; align-items:flex-start;
+    font-size:.78rem; line-height:1.45; padding:9px 11px; border-radius:8px;
+    background:rgba(194,99,109,.09); border:1px solid rgba(194,99,109,.28);
+    color:var(--rose);
   }
-  .collab-notice a{ color:var(--rose); font-weight:600; }
+  .big-collab-notice .bc-icon{ flex:none; opacity:.9; }
 
   .card-links{ display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; padding-top:6px; }
   .link-btn{
@@ -278,6 +283,8 @@
     transition:filter .15s ease;
   }
   .link-btn:hover{ filter:brightness(1.12); }
+  /* Only the Reddit button renders at the moment; the rest are kept here so
+     they can be switched back on in buildLinksHtml without restyling. */
   .link-reddit{ background:var(--reddit); color:#fff; }
   .link-patreon{ background:var(--patreon); color:#1a0e0c; }
   .link-subscribestar{ background:var(--subscribestar); color:#1a0e0c; }
@@ -344,8 +351,6 @@
     .layout{ display:block; }
     main.content{ padding:18px 14px 70px; }
     .grid.cols-2, .grid.cols-3{ grid-template-columns:1fr; }
-    .grid.cols-1 .card{ flex-direction:column; }
-    .grid.cols-1 .card .card-media{ width:100%; }
     #a11y-panel{ width:88vw; }
     .search-wrap.open{ max-width:220px; }
   }
@@ -643,13 +648,10 @@
     var isFav = state.favourites.has(e.id);
     var tc = typeColor(e.type);
 
-    var mediaHtml = e.image
-      ? '<img loading="lazy" src="'+attr(e.image)+'" alt="'+attr(e.title||'')+'">'
-      : '<div class="placeholder">🎧</div>';
-
-    var badges = '';
-    if (e.exclusive) badges += '<span class="badge badge-exclusive">Exclusive</span>';
-    badges += '<span class="badge badge-type" style="color:'+tc+';border-color:'+tc+'55;">'+escapeHtml(e.type||'Uncategorized')+'</span>';
+    var badges = '<div class="card-badges">'+
+      '<span class="badge badge-type" style="color:'+tc+';border-color:'+tc+'55;">'+escapeHtml(e.type||'Uncategorized')+'</span>'+
+      (e.exclusive ? '<span class="badge badge-exclusive">Exclusive</span>' : '')+
+    '</div>';
 
     var meta = '<div class="card-meta">';
     if (e.date) meta += '<span>'+formatDate(e.date)+'</span>';
@@ -660,20 +662,19 @@
     var tagsHtml = buildTagsHtml(e.tags||[]);
     var descHtml = buildDescHtml(e.description||'');
     var creditsHtml = buildCreditsHtml(e);
-    var collabHtml = buildCollabHtml(e.collab);
+    var bigCollabHtml = buildBigCollabHtml(e);
     var linksHtml = buildLinksHtml(e.links||{});
 
     card.innerHTML =
-      '<div class="card-media">'+mediaHtml+badges+
-        '<button class="fav-btn'+(isFav?' active':'')+'" aria-label="Favourite">'+heartSvg()+'</button>'+
-      '</div>'+
+      '<button class="fav-btn'+(isFav?' active':'')+'" aria-label="Favourite">'+heartSvg()+'</button>'+
       '<div class="card-body">'+
+        badges+
         '<div class="card-title display">'+escapeHtml(e.title||'Untitled')+'</div>'+
         meta+
         descHtml+
         tagsHtml+
-        (collabHtml||'')+
         creditsHtml+
+        bigCollabHtml+
         linksHtml+
       '</div>';
 
@@ -742,12 +743,23 @@
       (needsClamp ? '<button class="read-more">Read more</button>' : '');
   }
 
+  /* One line per credit — writer, editor and the voices on a collab — so a
+     long username never wraps away from the label in front of it. */
   function buildCreditsHtml(e){
-    var parts = [];
-    if (e.writer) parts.push('Written by ' + linkOrText(e.writer));
-    if (e.editor) parts.push('Edited by ' + linkOrText(e.editor));
-    if (!parts.length) return '';
-    return '<div class="card-credits">'+parts.join(' · ')+'</div>';
+    var rows = [];
+    if (e.writer) rows.push(creditRow('Written by', [e.writer]));
+    if (e.editor) rows.push(creditRow('Edited by', [e.editor]));
+    if (e.collab && e.collab.length) rows.push(creditRow('With', e.collab));
+    if (!rows.length) return '';
+    return '<div class="card-credits">'+rows.join('')+'</div>';
+  }
+
+  function creditRow(label, people){
+    var names = people.map(linkOrText).join(', ');
+    return '<div class="credit">'+
+             '<span class="credit-label">'+label+'</span>'+
+             '<span class="credit-name">'+names+'</span>'+
+           '</div>';
   }
 
   function linkOrText(person){
@@ -755,32 +767,22 @@
     return escapeHtml(person.name);
   }
 
-  function buildCollabHtml(collab){
-    if (!collab || !collab.length) return '';
-    var names = collab.map(function(c){ return linkOrText(c); }).join(', ');
-    return '<div class="collab-notice">In collaboration with '+names+'</div>';
+  /* Type is normalised by build.py, but compare loosely so a stray
+     "big collab" typed straight into the sheet still matches. */
+  function buildBigCollabHtml(e){
+    if (String(e.type||'').trim().toLowerCase() !== 'big collab') return '';
+    return '<div class="big-collab-notice">'+
+             '<span class="bc-icon">★</span>'+
+             '<span>This collab is a BIG project with lots of people involved! '+
+             'Check the post to see all of them!</span>'+
+           '</div>';
   }
 
   function buildLinksHtml(links){
-    var known = [
-      {key:'reddit', label:'Reddit', cls:'link-reddit'},
-      {key:'soundgasm', label:'Soundgasm', cls:'link-soundgasm'},
-      {key:'audiochan', label:'Audiochan', cls:'link-audiochan'},
-      {key:'hotaudio', label:'Hot Audio', cls:'link-hotaudio'},
-      {key:'patreon', label:'Patreon', cls:'link-patreon'},
-      {key:'subscribestar', label:'SubscribeStar', cls:'link-subscribestar'},
-      {key:'c4s', label:'Clips4Sale', cls:'link-c4s'},
-      {key:'script', label:'Script', cls:'link-script'}
-    ];
     var html = '<div class="card-links">';
-    var any = false;
-    known.forEach(function(k){
-      if (links[k.key]){
-        any = true;
-        html += '<a class="link-btn '+k.cls+'" href="'+attr(links[k.key])+'" target="_blank" rel="noopener">'+k.label+'</a>';
-      }
-    });
-    if (!any){
+    if (links.reddit){
+      html += '<a class="link-btn link-reddit" href="'+attr(links.reddit)+'" target="_blank" rel="noopener">Reddit</a>';
+    } else {
       html += '<span class="coming-soon">Coming soon</span>';
     }
     html += '</div>';
