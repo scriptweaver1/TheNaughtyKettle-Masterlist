@@ -335,6 +335,117 @@ def parse_date(raw, order="MDY"):
 
 # ─── Series ──────────────────────────────────────────────────────────
 
+# ─── Tag index (powers the site's search) ────────────────────────────
+
+# Tags that mean the same thing but are never written the same way, so
+# co-occurrence can't find them: a synonym is a *substitute*, meaning the
+# two rarely appear on the same audio. Each row is one concept; searching
+# any word in it finds all the others. Add rows as the sheet's vocabulary
+# grows — everything else in the index is derived automatically.
+#
+# Keep these strictly to different wordings of ONE concept. Things that
+# merely go together — garden/birds/nature, praise/good girl — belong to
+# the co-occurrence map below, which ranks them as related rather than
+# exact. Putting them here promotes every bird audio into the exact
+# results for "garden", which is how this list was wrong the first time.
+TAG_SYNONYMS = [
+    ["fdom", "femdom", "female dom", "female dominant", "domme"],
+    ["mdom", "male dom", "male dominant"],
+    ["fsub", "female sub", "female submissive"],
+    ["msub", "male sub", "male submissive"],
+    ["joi", "jerk off instruction", "guided masturbation", "guided wank"],
+    ["gfe", "girlfriend experience", "girlfriend"],
+    ["bfe", "boyfriend experience", "boyfriend"],
+    ["cnc", "consensual non consent"],
+    ["asmr", "tingles", "trigger sounds"],
+    ["d2l", "down to listener"],
+    ["sfw", "safe for work", "clean", "no sex"],
+    ["nsfw", "not safe for work", "explicit"],
+    ["l-bombs", "l bombs", "i love you", "love confession"],
+    ["blowjob", "bj", "oral", "sucking"],
+    ["cunnilingus", "going down", "eating out"],
+    ["ramblefap", "ramble", "rambling", "stream of consciousness"],
+    ["improv", "improvised", "unscripted", "off the cuff"],
+    ["script fill", "scripted", "fill"],
+    ["aftercare", "cuddles", "cuddling"],
+    ["pegging", "strap on", "strapon"],
+    ["hypno", "hypnosis", "hypnotic", "trance"],
+    ["degradation", "degrading"],
+    ["praise", "praise kink"],
+    ["wet sounds", "wet noises", "wet pussy sounds", "wet pussy noises"],
+    ["listener orgasm", "you cum"],
+    ["mutual orgasm", "cum together", "cum with me"],
+    ["overstim", "overstimulation", "oversensitive"],
+    ["edging", "orgasm denial"],
+    ["whisper", "whispers", "whispering", "whispery", "soft spoken"],
+    ["moaning", "moans", "moan"],
+    ["gentle", "soft", "tender"],
+    ["sleep aid", "sleep", "bedtime", "falling asleep"],
+]
+
+# How a tag is written on a card vs. how it is matched: casing and spacing
+# vary across the sheet ("Script Fill", "script fill", "SCRIPT FILL").
+def norm_tag(tag):
+    return re.sub(r"\s+", " ", (tag or "").strip().lower())
+
+
+def build_tag_index(entries, min_freq=4, min_shared=3, max_related=8):
+    """
+    A vocabulary plus a 'related concepts' map for the search box.
+
+    Relatedness is measured by co-occurrence: two tags are related when the
+    audios carrying one tend to carry the other. Jaccard (shared / either)
+    rather than raw counts, so a common tag like 'moaning' isn't related to
+    everything. Rare tags are skipped — with ~220 audios, a tag used twice
+    can't say anything reliable, and the long tail here is mostly one-off
+    descriptive phrases rather than real concepts.
+    """
+    freq = Counter()
+    per_entry = []
+    for entry in entries:
+        tags = {norm_tag(t) for t in entry["tags"] if norm_tag(t)}
+        per_entry.append(tags)
+        freq.update(tags)
+
+    concepts = {t for t, c in freq.items() if c >= min_freq}
+
+    shared = defaultdict(Counter)
+    for tags in per_entry:
+        present = sorted(tags & concepts)
+        for i, a in enumerate(present):
+            for b in present[i + 1:]:
+                shared[a][b] += 1
+                shared[b][a] += 1
+
+    related = {}
+    for tag in concepts:
+        scored = []
+        for other, together in shared[tag].items():
+            if together < min_shared:
+                continue
+            union = freq[tag] + freq[other] - together
+            if union:
+                scored.append((together / union, other))
+        scored.sort(reverse=True)
+        if scored:
+            related[tag] = [name for _, name in scored[:max_related]]
+
+    # Keep only synonym rows that touch this catalogue, so the shipped index
+    # reflects the actual vocabulary rather than a generic word list.
+    known = set(freq)
+    synonyms = []
+    for row in TAG_SYNONYMS:
+        cleaned = [norm_tag(w) for w in row]
+        if any(w in known for w in cleaned):
+            synonyms.append(cleaned)
+
+    return {
+        "vocab": {t: freq[t] for t in sorted(freq) if freq[t] >= 2},
+        "related": {t: related[t] for t in sorted(related)},
+        "synonyms": synonyms,
+    }
+
+
 def detect_series(titles):
     """Label a series only where a numbered prefix is shared by 2+ entries."""
     groups = defaultdict(list)
@@ -460,10 +571,12 @@ def main():
     print(f"   {len(entries)} entries | slash dates read as {date_order}")
 
     types = sorted({e["type"] for e in entries})
+    tag_index = build_tag_index(entries)
     payload = {
         "lastUpdated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "totalEntries": len(entries),
         "types": types,
+        "tagIndex": tag_index,
         "audios": entries,
     }
 
@@ -481,6 +594,9 @@ def main():
     print(f"   links      {', '.join(f'{k} {c}' for k, c in Counter(k for e in entries for k in e['links']).most_common())}")
     print(f"   series     {sum(1 for e in entries if e['series'])} entries in "
           f"{len({e['series'] for e in entries if e['series']})} series")
+    print(f"   tag index  {len(tag_index['vocab'])} tags in the vocabulary, "
+          f"{len(tag_index['related'])} with related concepts, "
+          f"{len(tag_index['synonyms'])} synonym groups in use")
     print(f"   exclusive  {sum(1 for e in entries if e['exclusive'])}")
     print(f"   credits    writer {sum(1 for e in entries if e['writer'])}, "
           f"editor {sum(1 for e in entries if e['editor'])}, "
