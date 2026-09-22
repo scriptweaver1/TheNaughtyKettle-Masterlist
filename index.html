@@ -146,13 +146,61 @@
   }
   .search-wrap input:focus{ outline:none; border-color:var(--gold); }
 
+  /* Links out to her own pages, sitting in the header. */
+  .header-links{ display:flex; gap:8px; }
+  .header-link{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 14px; border-radius:999px; text-decoration:none;
+    font-size:.82rem; font-weight:600; letter-spacing:.01em;
+    border:1px solid currentColor; background:transparent;
+    transition:.15s ease; white-space:nowrap;
+  }
+  .header-link-reddit{ color:var(--reddit); }
+  .header-link-patreon{ color:var(--patreon); }
+  .header-link:hover{ background:currentColor; }
+  .header-link:hover span{ color:#140f0c; }
+  .header-link svg{ width:15px; height:15px; flex:none; }
+
   /* ---------- Layout ---------- */
   .layout{ display:flex; align-items:flex-start; max-width:1400px; margin:0 auto; position:relative; z-index:1; }
   aside.sidebar{
     width:250px; flex:none; position:sticky; top:73px;
-    max-height:calc(100vh - 73px); overflow-y:auto;
+    max-height:calc(100vh - 73px); overflow-y:auto; overscroll-behavior:contain;
     padding:22px 16px 40px; border-right:1px solid var(--border);
+    scrollbar-width:thin;                          /* Firefox */
+    scrollbar-color:rgba(212,175,106,.38) transparent;
   }
+  /* WebKit/Blink: a slim gold rail instead of the default grey slab. */
+  aside.sidebar::-webkit-scrollbar{ width:8px; }
+  aside.sidebar::-webkit-scrollbar-track{ background:transparent; }
+  aside.sidebar::-webkit-scrollbar-thumb{
+    background:rgba(212,175,106,.28); border-radius:99px;
+    border:2px solid transparent; background-clip:content-box;
+  }
+  aside.sidebar::-webkit-scrollbar-thumb:hover{ background:rgba(212,175,106,.55); background-clip:content-box; }
+
+  /* Same treatment anywhere else that scrolls. */
+  #a11y-panel{ scrollbar-width:thin; scrollbar-color:rgba(212,175,106,.38) transparent; }
+  #a11y-panel::-webkit-scrollbar{ width:8px; }
+  #a11y-panel::-webkit-scrollbar-track{ background:transparent; }
+  #a11y-panel::-webkit-scrollbar-thumb{
+    background:rgba(212,175,106,.28); border-radius:99px;
+    border:2px solid transparent; background-clip:content-box;
+  }
+
+  /* ---------- Audience filter (4F / 4M / 4A) ---------- */
+  .audience-row{ display:flex; gap:6px; }
+  .aud-btn{
+    flex:1; padding:8px 4px; border-radius:9px; cursor:pointer;
+    background:var(--surface); border:1px solid var(--border);
+    color:var(--text-faint); font-size:.82rem; font-weight:700; letter-spacing:.03em;
+    transition:.14s ease; font-family:inherit;
+  }
+  .aud-btn:hover{ color:var(--text); border-color:var(--border-strong); }
+  .aud-btn.active{
+    background:var(--surface-raised); border-color:var(--gold); color:var(--gold-bright);
+  }
+  .aud-btn .aud-count{ display:block; font-size:.68rem; font-weight:500; opacity:.7; margin-top:1px; }
   .sidebar h3{ font-family:var(--font-ui); font-size:.72rem; text-transform:uppercase; letter-spacing:.09em; color:var(--text-faint); margin:22px 0 10px; font-weight:700; }
   .sidebar h3:first-child{ margin-top:0; }
   .filter-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
@@ -398,6 +446,9 @@
     .sidebar-backdrop.show{ display:block; }
     .mobile-filter-btn{ display:inline-flex; }
     .grid.cols-2, .grid.cols-3{ grid-template-columns:1fr 1fr; }
+    /* the header runs out of room first, so the labels go and the icons stay */
+    .header-link span{ display:none; }
+    .header-link{ padding:7px 10px; }
   }
   @media (max-width: 620px){
     .layout{ display:block; }
@@ -431,6 +482,18 @@
   </button>
   <a class="logo" href="#">The<em>Naughty</em>Kettle</a>
   <div class="header-spacer"></div>
+  <div class="header-links" id="header-links">
+    <a class="header-link header-link-reddit" id="link-reddit"
+       href="https://www.reddit.com/user/theNaughtyKettle" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.7 9.7 0 0 1-2.8-.4L4 21l1.6-4.1A8.1 8.1 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/></svg>
+      <span>Reddit</span>
+    </a>
+    <a class="header-link header-link-patreon" id="link-patreon"
+       href="https://www.patreon.com/TheNaughtyKettle" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16M10 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/></svg>
+      <span>Patreon</span>
+    </a>
+  </div>
   <div class="search-wrap" id="search-wrap">
     <input type="text" id="search-input" placeholder="Search titles, tags, series…">
   </div>
@@ -453,6 +516,13 @@
       <option value="oldest">Oldest first</option>
       <option value="az">A–Z</option>
     </select>
+
+    <h3>Audience</h3>
+    <div class="audience-row" id="audience-row">
+      <button class="aud-btn active" data-aud="F">4F<span class="aud-count" data-count="F"></span></button>
+      <button class="aud-btn active" data-aud="M">4M<span class="aud-count" data-count="M"></span></button>
+      <button class="aud-btn active" data-aud="A">4A<span class="aud-count" data-count="A"></span></button>
+    </div>
 
     <h3>Type</h3>
     <ul class="filter-list" id="type-filter-list"></ul>
@@ -571,8 +641,10 @@
     filtered: [],
     lastUpdated: null,
     relatedStart: -1,
-    tagIndex: null
+    tagIndex: null,
+    audience: new Set(JSON.parse(localStorage.getItem('tnk_audience')||'["F","M","A"]'))
   };
+  if (!state.audience.size) state.audience = new Set(['F','M','A']);
 
   var grid = document.getElementById('grid');
   var resultCount = document.getElementById('result-count');
@@ -886,6 +958,7 @@
 
   function init(){
     buildSearchIndex(state.tagIndex);
+    buildAudienceFilter();
     buildTypeFilters();
     applyFilters();
     bindControls();
@@ -934,6 +1007,7 @@
     var list = state.entries.filter(function(e){
       if (state.favOnly && !state.favourites.has(e.id)) return false;
       if (state.typeFilters.size && !state.typeFilters.has(e.type||'Uncategorized')) return false;
+      if (!audienceAllows(e)) return false;
       return true;
     });
 
@@ -969,6 +1043,45 @@
       grid.style.display = 'grid';
       renderNextBatch();
     }
+  }
+
+  /* An audio is shown when any of its listener tags is switched on. The few
+     entries with no audience tag at all are always shown rather than being
+     quietly dropped by a property they never had. */
+  function audienceAllows(e){
+    var aud = e.audience;
+    if (!aud || !aud.length) return true;
+    for (var i = 0; i < aud.length; i++){
+      if (state.audience.has(aud[i])) return true;
+    }
+    return false;
+  }
+
+  function buildAudienceFilter(){
+    var counts = { F:0, M:0, A:0 };
+    state.entries.forEach(function(e){
+      (e.audience||[]).forEach(function(a){ if (counts[a] != null) counts[a]++; });
+    });
+    document.querySelectorAll('#audience-row .aud-count').forEach(function(el){
+      el.textContent = counts[el.dataset.count] || 0;
+    });
+    document.querySelectorAll('#audience-row .aud-btn').forEach(function(btn){
+      var key = btn.dataset.aud;
+      btn.classList.toggle('active', state.audience.has(key));
+      btn.title = 'Audios for ' + ({F:'women', M:'men', A:'anyone'}[key] || key);
+      btn.addEventListener('click', function(){
+        if (state.audience.has(key)) state.audience.delete(key);
+        else state.audience.add(key);
+        // turning the last one off would leave an empty page; treat that as
+        // "show everything" instead, which is what the reset reads as
+        if (!state.audience.size) state.audience = new Set(['F','M','A']);
+        localStorage.setItem('tnk_audience', JSON.stringify(Array.from(state.audience)));
+        document.querySelectorAll('#audience-row .aud-btn').forEach(function(b){
+          b.classList.toggle('active', state.audience.has(b.dataset.aud));
+        });
+        applyFilters();
+      });
+    });
   }
 
   function renderSearchHint(raw, meta){
@@ -1293,6 +1406,9 @@
       state.favOnly = false;
       state.search = '';
       searchInput.value = '';
+      state.audience = new Set(['F','M','A']);
+      localStorage.setItem('tnk_audience', JSON.stringify(['F','M','A']));
+      document.querySelectorAll('#audience-row .aud-btn').forEach(function(b){ b.classList.add('active'); });
       document.querySelectorAll('.filter-item.active').forEach(function(el){ el.classList.remove('active'); });
       document.getElementById('fav-toggle').classList.remove('active');
       applyFilters();
