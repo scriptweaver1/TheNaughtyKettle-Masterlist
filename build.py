@@ -160,6 +160,28 @@ def normalize_type(raw):
     return raw.strip()
 
 
+# Audience tags look like F4M, F4A, FF4M, F4TF — speaker(s) on the left of
+# the 4, listener on the right. Only the listener side drives the site's
+# 4F / 4M / 4A filter, and a trans listener tag counts as its gender.
+AUDIENCE_RE = re.compile(r"^([fma]{1,8})4([fmatnb]{1,8})$", re.I)
+
+
+def audience_from_tags(tags):
+    targets = set()
+    for tag in tags:
+        m = AUDIENCE_RE.fullmatch(tag.strip())
+        if not m:
+            continue
+        listener = m.group(2).upper()
+        if "A" in listener:
+            targets.add("A")
+        if "M" in listener:
+            targets.add("M")
+        if "F" in listener:
+            targets.add("F")
+    return sorted(targets)
+
+
 def parse_tags(raw):
     """Comma-separated, or [bracketed]. Keeps order, drops duplicates."""
     if not raw:
@@ -521,6 +543,11 @@ def build(rows):
         if entry_type == "Uncategorized":
             notes["no type"] += 1
 
+        tags = parse_tags(get("Tags"))
+        audience = audience_from_tags(tags)
+        if not audience:
+            notes["no audience tag (F4M / F4A / …)"] += 1
+
         entries.append({
             "id": entry_id,
             "title": title,
@@ -528,7 +555,8 @@ def build(rows):
             "duration": duration or None,
             "series": series_of.get(raw_title),
             "type": entry_type,
-            "tags": parse_tags(get("Tags")),
+            "audience": audience,
+            "tags": tags,
             "description": description or None,
             "image": None,
             "exclusive": exclusive,
@@ -597,6 +625,10 @@ def main():
     print(f"   tag index  {len(tag_index['vocab'])} tags in the vocabulary, "
           f"{len(tag_index['related'])} with related concepts, "
           f"{len(tag_index['synonyms'])} synonym groups in use")
+    aud = Counter()
+    for e in entries:
+        aud["+".join(e["audience"]) or "(none)"] += 1
+    print(f"   audience   {', '.join(f'{k} {v}' for k, v in aud.most_common())}")
     print(f"   exclusive  {sum(1 for e in entries if e['exclusive'])}")
     print(f"   credits    writer {sum(1 for e in entries if e['writer'])}, "
           f"editor {sum(1 for e in entries if e['editor'])}, "
