@@ -818,6 +818,21 @@
     var tokens = phrase.split(' ').filter(function(t){ return t.length > 1; });
     if (!tokens.length) tokens = phrase.split(' ').filter(Boolean);
 
+    /* Audience tags no longer appear on the cards, so a query like "f4m",
+       "ff4a" or just "4m" is answered from the entry's audience field
+       instead. The token still has to be satisfied for the card to count
+       as an exact match, so it behaves like any other word. */
+    var audienceAsk = [];   // {token index, letters}
+    tokens.forEach(function(t, i){
+      var m = /^[fma]*4([fmatnb]+)$/.exec(t);
+      if (!m) return;
+      var want = [];
+      if (m[1].indexOf('a') !== -1) want.push('A');
+      if (m[1].indexOf('m') !== -1) want.push('M');
+      if (m[1].indexOf('f') !== -1) want.push('F');
+      if (want.length) audienceAsk.push({ token:i, want:want });
+    });
+
     /* Each term remembers which of the user's words it stands for, so the
        scorer can tell "matched every word they typed" from "matched one of
        them". Terms standing for the whole phrase use -1. */
@@ -870,7 +885,7 @@
       });
     });
 
-    return { phrase:phrase, tokens:tokens, terms:terms,
+    return { phrase:phrase, tokens:tokens, terms:terms, audienceAsk:audienceAsk,
              fuzzy:fuzzyFound, related:relatedFound };
   }
 
@@ -912,6 +927,19 @@
       if (matched && (term.source === 'direct' || term.source === 'synonym')){
         if (term.token === -1) phraseHit = true;
         else tokenHit[term.token] = true;
+      }
+    }
+
+    // "f4m" and friends are matched against the audience rather than the tags
+    for (var a = 0; a < q.audienceAsk.length; a++){
+      var ask = q.audienceAsk[a];
+      var aud = e.audience || [];
+      for (var w = 0; w < ask.want.length; w++){
+        if (aud.indexOf(ask.want[w]) !== -1){
+          score += FIELD_WEIGHT.tag;
+          tokenHit[ask.token] = true;
+          break;
+        }
       }
     }
 
