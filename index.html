@@ -377,6 +377,18 @@
   .link-icon-btn img{ width:22px; height:22px; display:block; }
   .link-icon-reddit{ background:var(--reddit); color:#fff; }
 
+  .listen-btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:9px;
+    height:42px; padding:0 22px; border-radius:999px;
+    background:linear-gradient(180deg, var(--gold-bright), var(--gold));
+    color:#1a1310; text-decoration:none;
+    font-size:.86rem; font-weight:700; letter-spacing:.02em; white-space:nowrap;
+    transition:filter .15s ease, transform .15s ease;
+  }
+  .listen-btn:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+  .listen-btn:active{ transform:translateY(0); }
+  .listen-btn svg{ width:15px; height:15px; flex:none; display:block; }
+
   /* Reddit's official icon already draws its own orange disc. Painting it on
      an orange button hides everything but the white inner shape, so in that
      mode the button drops its background and the artwork fills it instead. */
@@ -1391,19 +1403,51 @@
   }
 
   function buildLinksHtml(links){
+    var listen = pickListenLink(links);
     var html = '<div class="card-links">';
-    if (links.reddit){
+
+    if (listen){
+      html += '<a class="listen-btn" href="'+attr(listen.url)+'" '+
+              'target="_blank" rel="noopener" '+
+              'title="Listen on '+attr(LISTEN_LABEL[listen.key] || listen.key)+'" '+
+              'aria-label="Listen on '+attr(LISTEN_LABEL[listen.key] || listen.key)+'">'+
+              PLAY_ICON+'<span>Listen here</span></a>';
+    }
+
+    if (links.reddit && (!listen || listen.url !== links.reddit)){
       html += '<a class="link-icon-btn link-icon-reddit'+
               (REDDIT_ICON_IS_FULL_LOGO ? ' is-full-logo' : '')+'" '+
               'href="'+attr(links.reddit)+'" '+
               'target="_blank" rel="noopener" title="View the post on Reddit" '+
               'aria-label="View the post on Reddit">'+REDDIT_ICON+'</a>';
-    } else {
+    }
+
+    if (!listen && !links.reddit){
       html += '<span class="coming-soon">Coming soon</span>';
     }
+
     html += '</div>';
     return html;
   }
+
+  var LISTEN_ORDER = ['hotaudio', 'soundgasm', 'audiochan', 'reddit', 'patreon', 'c4s'];
+  var LISTEN_LABEL = {
+    hotaudio:'Hot Audio', soundgasm:'Soundgasm', audiochan:'Audiochan',
+    reddit:'Reddit', patreon:'Patreon', c4s:'Clips4Sale'
+  };
+
+  function pickListenLink(links){
+    for (var i = 0; i < LISTEN_ORDER.length; i++){
+      var key = LISTEN_ORDER[i];
+      if (links[key]) return { key:key, url:links[key] };
+    }
+    return null;
+  }
+
+  var PLAY_ICON =
+    '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">' +
+      '<path d="M8 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 8 5.5z"/>' +
+    '</svg>';
 
   /* If the icon file can't be loaded — missing, renamed, wrong folder — swap
      in the built-in glyph so the button still reads as a link. A cached
