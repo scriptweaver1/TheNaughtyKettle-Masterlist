@@ -1380,7 +1380,7 @@
               PLAY_ICON+'<span>Listen here</span></a>';
     }
 
-    if (links.reddit && (!listen || listen.url !== links.reddit)){
+    if (isRedditPost(links.reddit)){
       html += '<a class="link-icon-btn link-icon-reddit'+
               (REDDIT_ICON_IS_FULL_LOGO ? ' is-full-logo' : '')+'" '+
               'href="'+attr(links.reddit)+'" '+
@@ -1388,7 +1388,7 @@
               'aria-label="View the post on Reddit">'+REDDIT_ICON+'</a>';
     }
 
-    if (!listen && !links.reddit){
+    if (!listen && !isRedditPost(links.reddit)){
       html += '<span class="coming-soon">Coming soon</span>';
     }
 
@@ -1396,18 +1396,25 @@
     return html;
   }
 
-  var LISTEN_ORDER = ['hotaudio', 'soundgasm', 'audiochan', 'reddit', 'patreon', 'c4s'];
+  var LISTEN_ORDER = ['hotaudio', 'patreon', 'soundgasm', 'audiochan', 'c4s'];
   var LISTEN_LABEL = {
-    hotaudio:'Hot Audio', soundgasm:'Soundgasm', audiochan:'Audiochan',
-    reddit:'Reddit', patreon:'Patreon', c4s:'Clips4Sale'
+    hotaudio:'Hot Audio', patreon:'Patreon', soundgasm:'Soundgasm',
+    audiochan:'Audiochan', c4s:'Clips4Sale'
   };
+
+  var NOT_A_PLAYER = /(^|\.)reddit\.com|redd\.it|scriptbin|pastebin|docs\.google/i;
 
   function pickListenLink(links){
     for (var i = 0; i < LISTEN_ORDER.length; i++){
       var key = LISTEN_ORDER[i];
-      if (links[key]) return { key:key, url:links[key] };
+      var url = links[key];
+      if (url && !NOT_A_PLAYER.test(url)) return { key:key, url:url };
     }
     return null;
+  }
+
+  function isRedditPost(url){
+    return !!url && /(^|\.)reddit\.com|redd\.it/i.test(url);
   }
 
   var PLAY_ICON =
