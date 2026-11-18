@@ -1,25 +1,3 @@
-"""
-build.py — Fetches theNaughtyKettle's masterlist spreadsheet as CSV,
-normalizes the data, and outputs audios.json for the site.
-
-One spreadsheet, one output. Everything the site shows comes from the sheet,
-so adding a row there is all that's needed to add an audio to the site.
-
-Run manually:            python build.py
-Against a local file:    python build.py --xlsx theNaughtyKettle_Audios_MERGED_fixed.xlsx
-Run via GitHub Actions:  see .github/workflows/build.yml
-
-To get the CSV URL: Google Sheets -> File -> Share -> Publish to web
--> pick the sheet -> Comma-separated values (.csv) -> Publish. Use the
-resulting URL, which looks like:
-  https://docs.google.com/spreadsheets/d/e/XXXXX/pub?gid=0&single=true&output=csv
-
-Expected columns (extra columns are ignored, missing ones are tolerated):
-  Title, Tags, Date, Writer, Script Link, Description, Post Link,
-  Collab Partners, Duration, Editor, Type,
-  Soundgasm, Audiochan, Hot Audio, Patreon, C4S
-"""
-
 import argparse
 import csv
 import io
@@ -30,19 +8,13 @@ import sys
 import unicodedata
 import urllib.request
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, time, timedelta, timezone
 
-# ─── Source ──────────────────────────────────────────────────────────
 SHEET_CSV_URL = os.environ.get("SHEET_CSV_URL", "YOUR_PUBLISHED_CSV_URL_HERE")
 OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "audios.json")
 
-# ─── Cells that mean "nothing here" ──────────────────────────────────
-# The sheet uses "x" for "not on this platform" / "no credit".
 BLANK = {"", "x", "-", "--", "n/a", "na", "none", "#n/a", "#ref!", "?", "tbd"}
 
-# ─── Type normalization ──────────────────────────────────────────────
-# Matching is case-insensitive, so "improv", "Improv" and "IMPROV" all
-# collapse to the canonical spelling. Add aliases as the sheet grows.
 TYPE_CANONICAL = [
     "Ramblefap", "Improv", "Improv RP", "Script Fill", "Narrative",
     "Collab", "Big Collab", "Series", "Poetry", "Kettlecast",
@@ -62,8 +34,6 @@ TYPE_ALIASES = {
     "oc": "Improv",
 }
 
-# ─── Link columns -> key in the JSON "links" object ──────────────────
-# Order here is the order the buttons appear on a card.
 LINK_COLUMNS = [
     ("post link", "reddit"),
     ("soundgasm", "soundgasm"),
@@ -86,10 +56,7 @@ PT_MONTHS = {m: f"{i:02d}" for i, m in enumerate(
      "jul", "ago", "set", "out", "nov", "dez"], start=1)}
 
 
-# ─── Fetching ────────────────────────────────────────────────────────
-
 def fetch_csv(url):
-    """Download the published sheet and return a list of dicts."""
     print(f"  fetching {url[:90]}{'...' if len(url) > 90 else ''}")
     req = urllib.request.Request(url, headers={"User-Agent": "KettleBuildBot/1.0"})
     with urllib.request.urlopen(req, timeout=45) as resp:
@@ -104,7 +71,6 @@ def fetch_csv(url):
 
 
 def read_xlsx(path, sheet=None):
-    """Read a local .xlsx instead of the published sheet (for offline runs)."""
     import openpyxl
     book = openpyxl.load_workbook(path, data_only=True)
     page = book[sheet] if sheet else book[book.sheetnames[0]]
@@ -117,10 +83,7 @@ def read_xlsx(path, sheet=None):
     return rows
 
 
-# ─── Cell helpers ────────────────────────────────────────────────────
-
 def row_getter(row):
-    """Look up a column by name, ignoring case and surrounding whitespace."""
     lookup = {}
     for key, value in row.items():
         if key is None:
@@ -137,6 +100,12 @@ def clean(value):
         return ""
     if isinstance(value, datetime):
         return value.strftime("%Y-%m-%d")
+    if isinstance(value, time):
+        return f"{value.hour}:{value.minute:02d}:{value.second:02d}"
+    if isinstance(value, timedelta):
+        hours, rest = divmod(int(value.total_seconds()), 3600)
+        minutes, seconds = divmod(rest, 60)
+        return f"{hours}:{minutes:02d}:{seconds:02d}"
     text = str(value).strip()
     return "" if text.lower() in BLANK else text
 
@@ -160,10 +129,31 @@ def normalize_type(raw):
     return raw.strip()
 
 
-# Audience tags look like F4M, F4A, FF4M, F4TF — speaker(s) on the left of
-# the 4, listener on the right. Only the listener side drives the site's
-# 4F / 4M / 4A filter, and a trans listener tag counts as its gender.
 AUDIENCE_RE = re.compile(r"^([fma]{1,8})4([fmatnb]{1,8})$", re.I)
+
+CATEGORY_GROUPS = ["flavor", "relationship", "feature"]
+COLUMN_FOR = {"flavor": "Flavor", "relationship": "Relationship", "feature": "Feature"}
+
+
+def split_categories(raw):
+    out, seen = [], set()
+    for part in re.split(r"[,;/|]", raw or ""):
+        value = re.sub(r"\s+", " ", part.strip())
+        if not value or value.lower() in BLANK:
+            continue
+        if value.lower() not in seen:
+            seen.add(value.lower())
+            out.append(value)
+    return out
+
+
+def parse_sfw(raw):
+    value = (raw or "").strip().lower()
+    if value in ("sfw", "safe", "clean", "yes", "true"):
+        return True
+    if value in ("nsfw", "explicit", "no", "false"):
+        return False
+    return None
 
 
 def audience_from_tags(tags):
@@ -183,7 +173,6 @@ def audience_from_tags(tags):
 
 
 def parse_tags(raw):
-    """Comma-separated, or [bracketed]. Keeps order, drops duplicates."""
     if not raw:
         return []
     bracketed = re.findall(r"\[([^\]]+)\]", raw)
@@ -200,7 +189,6 @@ def parse_tags(raw):
 
 
 def split_people(raw):
-    """'A, B' / 'A & B' / 'A x B' -> ['A', 'B'], placeholders dropped."""
     if not raw:
         return []
     out = []
@@ -216,7 +204,6 @@ def person(name):
 
 
 def credit(names):
-    """The card renders one credit line, so several names are joined."""
     if not names:
         return None
     if len(names) == 1:
@@ -239,47 +226,30 @@ def normalize_url(url):
     return re.sub(r"[?&]utm_[^&]*", "", url).rstrip("?&")
 
 
-# ─── Duration ────────────────────────────────────────────────────────
-
 def parse_duration(raw):
-    """
-    Normalize to 'M:SS', or 'H:MM:SS' for anything an hour or longer.
-
-    Google Sheets treats an 'MM:SS' cell as a time, so it exports 26:00
-    (26 minutes) as '26:00:00' — 26 hours. The giveaway is the seconds
-    component: a mangled MM:SS always lands on :00, while a genuine
-    H:MM:SS keeps real seconds. The one case this can't tell apart is a
-    real duration of exactly H:MM:00, which is reported at the end.
-    """
     raw = (raw or "").strip()
     if not raw or raw.lower() in BLANK:
         return "", False
     if "-" in raw and re.search(r"\d\s*[mh]", raw):
-        return raw, False                              # a range, e.g. "15m-40m"
+        return raw, False
 
     def fmt(total_seconds):
         hours, rest = divmod(int(total_seconds), 3600)
         minutes, seconds = divmod(rest, 60)
         return f"{hours}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes}:{seconds:02d}"
 
-    # "22m 52s" / "28m" / "45s" / "1h12m"
     m = re.fullmatch(r"(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*(?:(\d+)\s*s)?", raw, re.I)
     if m and any(m.groups()):
         h, mi, se = (int(g) if g else 0 for g in m.groups())
         return fmt(h * 3600 + mi * 60 + se), False
 
-    # "26:00:00" (mangled) or "1:07:12" (genuine)
     m = re.fullmatch(r"(\d+):(\d{2}):(\d{2})", raw)
     if m:
         h, mi, se = (int(g) for g in m.groups())
         if se == 0:
-            # Read as mangled MM:SS. Only worth flagging when the H:MM:00
-            # reading is also believable — "13:52:00" is not 13 hours of
-            # audio, but "2:05:00" really could be two hours five minutes.
             return fmt(h * 60 + mi), (1 <= h <= 3 and mi > 0)
         return fmt(h * 3600 + mi * 60 + se), False
 
-    # "13:52" — already plain text, exactly what we want
     m = re.fullmatch(r"(\d+):(\d{2})", raw)
     if m:
         mi, se = int(m.group(1)), int(m.group(2))
@@ -288,14 +258,7 @@ def parse_duration(raw):
     return raw, False
 
 
-# ─── Dates ───────────────────────────────────────────────────────────
-
 def detect_date_order(values):
-    """
-    Decide whether slash dates are D/M/Y or M/D/Y by looking at the whole
-    column: any day above 12 settles it. Sheets exports in the document's
-    locale, so this avoids hard-coding an assumption that breaks silently.
-    """
     first_over_12 = second_over_12 = 0
     for value in values:
         m = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{4})", (value or "").strip())
@@ -324,7 +287,6 @@ def parse_date(raw, order="MDY"):
     if m:
         return m.group(1)
 
-    # "21 jul., 2025" / "21 Jul 2025"
     m = re.match(r"(\d{1,2})\s+(\w+)\.?,?\s*(\d{4})$", raw)
     if m:
         abbr = m.group(2).lower()[:3]
@@ -332,7 +294,6 @@ def parse_date(raw, order="MDY"):
         if month:
             return f"{m.group(3)}-{month}-{int(m.group(1)):02d}"
 
-    # "Jul 21, 2025" / "July 21 2025"
     m = re.match(r"([A-Za-zçÇ]+)\.?\s+(\d{1,2}),?\s*(\d{4})$", raw)
     if m:
         abbr = m.group(1).lower()[:3]
@@ -340,7 +301,6 @@ def parse_date(raw, order="MDY"):
         if month:
             return f"{m.group(3)}-{month}-{int(m.group(2)):02d}"
 
-    # 21/07/2025, 21-07-2025, 21.07.2025
     m = re.fullmatch(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", raw)
     if m:
         a, b, year = int(m.group(1)), int(m.group(2)), m.group(3)
@@ -355,21 +315,6 @@ def parse_date(raw, order="MDY"):
     return None
 
 
-# ─── Series ──────────────────────────────────────────────────────────
-
-# ─── Tag index (powers the site's search) ────────────────────────────
-
-# Tags that mean the same thing but are never written the same way, so
-# co-occurrence can't find them: a synonym is a *substitute*, meaning the
-# two rarely appear on the same audio. Each row is one concept; searching
-# any word in it finds all the others. Add rows as the sheet's vocabulary
-# grows — everything else in the index is derived automatically.
-#
-# Keep these strictly to different wordings of ONE concept. Things that
-# merely go together — garden/birds/nature, praise/good girl — belong to
-# the co-occurrence map below, which ranks them as related rather than
-# exact. Putting them here promotes every bird audio into the exact
-# results for "garden", which is how this list was wrong the first time.
 TAG_SYNONYMS = [
     ["fdom", "femdom", "female dom", "female dominant", "domme"],
     ["mdom", "male dom", "male dominant"],
@@ -405,23 +350,11 @@ TAG_SYNONYMS = [
     ["sleep aid", "sleep", "bedtime", "falling asleep"],
 ]
 
-# How a tag is written on a card vs. how it is matched: casing and spacing
-# vary across the sheet ("Script Fill", "script fill", "SCRIPT FILL").
 def norm_tag(tag):
     return re.sub(r"\s+", " ", (tag or "").strip().lower())
 
 
 def build_tag_index(entries, min_freq=4, min_shared=3, max_related=8):
-    """
-    A vocabulary plus a 'related concepts' map for the search box.
-
-    Relatedness is measured by co-occurrence: two tags are related when the
-    audios carrying one tend to carry the other. Jaccard (shared / either)
-    rather than raw counts, so a common tag like 'moaning' isn't related to
-    everything. Rare tags are skipped — with ~220 audios, a tag used twice
-    can't say anything reliable, and the long tail here is mostly one-off
-    descriptive phrases rather than real concepts.
-    """
     freq = Counter()
     per_entry = []
     for entry in entries:
@@ -452,8 +385,6 @@ def build_tag_index(entries, min_freq=4, min_shared=3, max_related=8):
         if scored:
             related[tag] = [name for _, name in scored[:max_related]]
 
-    # Keep only synonym rows that touch this catalogue, so the shipped index
-    # reflects the actual vocabulary rather than a generic word list.
     known = set(freq)
     synonyms = []
     for row in TAG_SYNONYMS:
@@ -469,7 +400,6 @@ def build_tag_index(entries, min_freq=4, min_shared=3, max_related=8):
 
 
 def detect_series(titles):
-    """Label a series only where a numbered prefix is shared by 2+ entries."""
     groups = defaultdict(list)
     for title in titles:
         m = SERIES_RE.match(title)
@@ -485,8 +415,6 @@ def detect_series(titles):
             series[title] = label
     return series
 
-
-# ─── Build ───────────────────────────────────────────────────────────
 
 def build(rows):
     getters = [row_getter(r) for r in rows]
@@ -548,12 +476,15 @@ def build(rows):
         if not audience:
             notes["no audience tag (F4M / F4A / …)"] += 1
 
-        # The audience now has its own filter in the sidebar, so F4M / F4A /
-        # FF4M and friends are dropped from the chips on the card. They also
-        # sat on nearly every audio, which made them turn up as "related
-        # concepts" for almost any search. The site still matches them: a
-        # query for f4m is answered from the audience field above.
         tags = [t for t in all_tags if not AUDIENCE_RE.fullmatch(t.strip())]
+
+        cats = {g: split_categories(get(COLUMN_FOR[g])) for g in CATEGORY_GROUPS}
+        if not any(cats.values()):
+            notes["no flavor / relationship / feature"] += 1
+
+        sfw = parse_sfw(get("SFW"))
+        if sfw is None:
+            notes["no SFW / NSFW marking"] += 1
 
         entries.append({
             "id": entry_id,
@@ -563,6 +494,8 @@ def build(rows):
             "series": series_of.get(raw_title),
             "type": entry_type,
             "audience": audience,
+            "sfw": sfw,
+            "categories": cats,
             "tags": tags,
             "description": description or None,
             "image": None,
@@ -607,10 +540,15 @@ def main():
 
     types = sorted({e["type"] for e in entries})
     tag_index = build_tag_index(entries)
+    category_vocab = {
+        g: sorted({v for e in entries for v in e["categories"][g]}, key=str.lower)
+        for g in CATEGORY_GROUPS
+    }
     payload = {
         "lastUpdated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "totalEntries": len(entries),
         "types": types,
+        "categories": category_vocab,
         "tagIndex": tag_index,
         "audios": entries,
     }
@@ -636,6 +574,12 @@ def main():
     for e in entries:
         aud["+".join(e["audience"]) or "(none)"] += 1
     print(f"   audience   {', '.join(f'{k} {v}' for k, v in aud.most_common())}")
+    sfw = Counter("SFW" if e["sfw"] is True else "NSFW" if e["sfw"] is False else "unmarked"
+                  for e in entries)
+    print(f"   sfw        {', '.join(f'{k} {v}' for k, v in sfw.most_common())}")
+    for g in CATEGORY_GROUPS:
+        tagged = sum(1 for e in entries if e["categories"][g])
+        print(f"   {g:10s} {tagged} entries, {len(category_vocab[g])} distinct values")
     print(f"   exclusive  {sum(1 for e in entries if e['exclusive'])}")
     print(f"   credits    writer {sum(1 for e in entries if e['writer'])}, "
           f"editor {sum(1 for e in entries if e['editor'])}, "
