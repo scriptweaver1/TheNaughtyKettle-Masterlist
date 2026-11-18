@@ -78,7 +78,6 @@
     #bg-canvas{ opacity:.9; }
   }
 
-  /* ---------- Age gate ---------- */
   #age-gate{
     position:fixed; inset:0; z-index:999;
     display:flex; align-items:center; justify-content:center;
@@ -112,7 +111,6 @@
   .btn-ghost{ background:transparent; }
   .gate-fine{ margin-top:18px; font-size:.72rem; color:var(--text-faint); }
 
-  /* ---------- Header ---------- */
   header.site-header{
     position:sticky; top:0; z-index:60;
     background:rgba(20,15,12,.86);
@@ -147,7 +145,6 @@
   }
   .search-wrap input:focus{ outline:none; border-color:var(--gold); }
 
-  /* Links out to her own pages, sitting in the header. */
   .header-links{ display:flex; gap:8px; }
   .header-link{
     display:inline-flex; align-items:center; gap:6px;
@@ -162,21 +159,15 @@
   .header-link:hover span{ color:#140f0c; }
   .header-link svg{ width:15px; height:15px; flex:none; }
 
-  /* ---------- Layout ---------- */
-  /* position:relative (with z-index left auto) is deliberate: it paints above
-     the z-index:0 canvas by document order without opening a stacking
-     context. Adding a z-index here traps the mobile filter drawer's z-index
-     inside this element, and the backdrop — a sibling — then covers the
-     drawer and swallows every tap on it. */
   .layout{ display:flex; align-items:flex-start; max-width:1400px; margin:0 auto; position:relative; }
   aside.sidebar{
     width:250px; flex:none; position:sticky; top:73px;
     max-height:calc(100vh - 73px); overflow-y:auto; overscroll-behavior:contain;
     padding:22px 16px 40px; border-right:1px solid var(--border);
-    scrollbar-width:thin;                          /* Firefox */
+    scrollbar-width:thin;
     scrollbar-color:rgba(212,175,106,.38) transparent;
   }
-  /* WebKit/Blink: a slim gold rail instead of the default grey slab. */
+
   aside.sidebar::-webkit-scrollbar{ width:8px; }
   aside.sidebar::-webkit-scrollbar-track{ background:transparent; }
   aside.sidebar::-webkit-scrollbar-thumb{
@@ -185,7 +176,6 @@
   }
   aside.sidebar::-webkit-scrollbar-thumb:hover{ background:rgba(212,175,106,.55); background-clip:content-box; }
 
-  /* Same treatment anywhere else that scrolls. */
   #a11y-panel{ scrollbar-width:thin; scrollbar-color:rgba(212,175,106,.38) transparent; }
   #a11y-panel::-webkit-scrollbar{ width:8px; }
   #a11y-panel::-webkit-scrollbar-track{ background:transparent; }
@@ -194,7 +184,6 @@
     border:2px solid transparent; background-clip:content-box;
   }
 
-  /* ---------- Audience filter (4F / 4M / 4A) ---------- */
   .audience-row{ display:flex; gap:6px; }
   .aud-btn{
     flex:1; padding:8px 4px; border-radius:9px; cursor:pointer;
@@ -208,31 +197,19 @@
   }
   .aud-btn .aud-count{ display:block; font-size:.68rem; font-weight:500; opacity:.7; margin-top:1px; }
 
-  .cat-group{ margin-top:22px; }
-  .cat-head{
-    width:100%; display:flex; align-items:center; gap:8px;
-    background:none; border:none; cursor:pointer; padding:0 0 10px;
-    font-family:var(--font-ui); font-size:.72rem; font-weight:700;
-    text-transform:uppercase; letter-spacing:.09em; color:var(--text-faint);
+  #category-filters{ margin-top:22px; }
+  #category-filters h3{ margin-top:0; }
+  .cat-list{
+    list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px;
+    max-height:320px; overflow-y:auto; scrollbar-width:thin;
+    scrollbar-color:rgba(212,175,106,.38) transparent;
   }
-  .cat-head:hover{ color:var(--text-dim); }
-  .cat-head .chev{
-    width:9px; height:9px; flex:none; border-right:1.6px solid currentColor;
-    border-bottom:1.6px solid currentColor; transform:rotate(-45deg);
-    transition:transform .18s ease; margin-left:auto; margin-right:2px;
-  }
-  .cat-group.open .cat-head .chev{ transform:rotate(45deg); }
-  .cat-head .cat-n{ color:var(--text-faint); opacity:.75; font-weight:600; letter-spacing:.04em; }
-  .cat-head.has-active{ color:var(--gold-bright); }
-  .cat-group .cat-list{ display:none; max-height:260px; overflow-y:auto; scrollbar-width:thin;
-             scrollbar-color:rgba(212,175,106,.38) transparent; }
   .cat-list::-webkit-scrollbar{ width:8px; }
   .cat-list::-webkit-scrollbar-track{ background:transparent; }
   .cat-list::-webkit-scrollbar-thumb{
     background:rgba(212,175,106,.28); border-radius:99px;
     border:2px solid transparent; background-clip:content-box;
   }
-  .cat-group.open .cat-list{ display:flex; }
   .sidebar h3{ font-family:var(--font-ui); font-size:.72rem; text-transform:uppercase; letter-spacing:.09em; color:var(--text-faint); margin:22px 0 10px; font-weight:700; }
   .sidebar h3:first-child{ margin-top:0; }
   .filter-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
@@ -281,7 +258,6 @@
 
   .mobile-filter-btn{ display:none; }
 
-  /* ---------- Grid & cards ---------- */
   .grid{ display:grid; gap:18px; }
   .grid.cols-1{ grid-template-columns:1fr; }
   .grid.cols-2{ grid-template-columns:repeat(2,1fr); }
@@ -295,8 +271,6 @@
   .card:hover{ border-color:var(--border-strong); }
   .card.highlight{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold), 0 0 30px rgba(212,175,106,.25); }
 
-  /* Badges sit in a row at the top of the card body now that there is no
-     image area to overlay them on. */
   .card-badges{ display:flex; flex-wrap:wrap; gap:6px; padding-right:40px; }
   .badge{
     padding:3px 10px; border-radius:999px;
@@ -315,9 +289,6 @@
   .fav-btn.active{ color:var(--rose); border-color:var(--rose); }
   .fav-btn svg{ width:16px; height:16px; }
 
-  /* flex:1 lets the body fill the card's full height, which is what gives
-     .card-links its margin-top:auto something to push against — without it
-     the button sits under the content instead of at the bottom. */
   .card-body{ padding:16px 16px 14px; display:flex; flex-direction:column; gap:8px; flex:1 1 auto; }
   .card-title{ font-size:1.25rem; color:var(--champagne); line-height:1.25; }
   .card-meta{ display:flex; flex-wrap:wrap; gap:6px 12px; font-size:.78rem; color:var(--text-faint); }
@@ -336,11 +307,10 @@
   }
   .tag:hover{ border-color:var(--gold); color:var(--gold-bright); }
   .tag.more{ color:var(--gold); border-style:dashed; }
-  /* Tags that caused this card to match the current search. */
+
   .tag.tag-hit{ background:rgba(212,175,106,.16); border-color:var(--gold); color:var(--gold-bright); }
   .tag.tag-near{ border-color:rgba(194,99,109,.5); color:#d8909a; }
 
-  /* Divider between the direct hits and the looser, concept-based ones. */
   .results-divider{
     grid-column:1/-1;
     display:flex; align-items:center; gap:14px;
@@ -364,8 +334,6 @@
   }
   .search-hint .hint-term:hover{ border-color:var(--gold); color:var(--gold-bright); }
 
-  /* Every credit — writer, editor, voices — gets its own line, so a long
-     name never wraps away from the label it belongs to. */
   .card-credits{
     display:flex; flex-direction:column; gap:5px;
     font-size:.76rem; color:var(--text-faint);
@@ -377,7 +345,6 @@
   .card-credits a{ color:var(--gold); text-decoration:none; }
   .card-credits a:hover{ text-decoration:underline; }
 
-  /* Big Collabs have too many voices to list, so the card points at the post. */
   .big-collab-notice{
     display:flex; gap:8px; align-items:flex-start;
     font-size:.78rem; line-height:1.45; padding:9px 11px; border-radius:8px;
@@ -386,8 +353,6 @@
   }
   .big-collab-notice .bc-icon{ flex:none; opacity:.9; }
 
-  /* margin-top:auto pins this row to the bottom of the card, so the button
-     lands in the same spot regardless of how much content sits above it. */
   .card-links{
     display:flex; flex-wrap:wrap; gap:8px;
     margin-top:auto; padding-top:14px;
@@ -415,9 +380,6 @@
   .listen-btn:active{ transform:translateY(0); }
   .listen-btn svg{ width:15px; height:15px; flex:none; display:block; }
 
-  /* Reddit's official icon already draws its own orange disc. Painting it on
-     an orange button hides everything but the white inner shape, so in that
-     mode the button drops its background and the artwork fills it instead. */
   .link-icon-btn.is-full-logo{ background:none; }
   .link-icon-btn.is-full-logo img{ width:100%; height:100%; border-radius:50%; }
 
@@ -427,8 +389,7 @@
     transition:filter .15s ease;
   }
   .link-btn:hover{ filter:brightness(1.12); }
-  /* Only the Reddit button renders at the moment; the rest are kept here so
-     they can be switched back on in buildLinksHtml without restyling. */
+
   .link-reddit{ background:var(--reddit); color:#fff; }
   .link-patreon{ background:var(--patreon); color:#1a0e0c; }
   .link-subscribestar{ background:var(--subscribestar); color:#1a0e0c; }
@@ -441,7 +402,6 @@
     font-size:.76rem; color:var(--text-faint); font-style:italic; padding:11px 2px;
   }
 
-  /* ---------- Empty / loading states ---------- */
   .empty-state{
     text-align:center; padding:70px 20px; color:var(--text-faint);
   }
@@ -450,7 +410,6 @@
   .sentinel{ height:1px; }
   .loading-row{ text-align:center; padding:26px; color:var(--text-faint); font-size:.85rem; }
 
-  /* ---------- Accessibility panel ---------- */
   #a11y-panel{
     position:fixed; top:0; right:0; height:100vh; width:300px; z-index:80;
     background:var(--surface); border-left:1px solid var(--border-strong);
@@ -470,14 +429,12 @@
   .font-options button.active{ border-color:var(--gold); color:var(--gold-bright); }
   .a11y-close{ position:absolute; top:18px; right:18px; }
 
-  /* ---------- Scroll to top ---------- */
   #scroll-top{
     position:fixed; bottom:26px; right:26px; z-index:50; opacity:0; pointer-events:none;
     transform:translateY(10px); transition:.2s ease;
   }
   #scroll-top.show{ opacity:1; pointer-events:auto; transform:translateY(0); }
 
-  /* ---------- Mobile ---------- */
   .sidebar-backdrop{ display:none; }
   @media (max-width: 900px){
     aside.sidebar{
@@ -490,24 +447,18 @@
     .sidebar-backdrop.show{ display:block; }
     .mobile-filter-btn{ display:inline-flex; }
     .grid.cols-2, .grid.cols-3{ grid-template-columns:1fr 1fr; }
-    /* the header runs out of room first, so the labels go and the icons stay */
+
     .header-link span{ display:none; }
     .header-link{ padding:7px 10px; }
     header.site-header{ gap:10px; padding:12px 16px; }
   }
 
-  /* Below this the header has to fit filter + logo + 2 links + 2 icons on a
-     360px screen. If it doesn't, the phone widens its layout viewport to fit
-     the overflow and renders the whole site zoomed out, so every item here
-     is sized to keep the row inside the screen. */
   @media (max-width: 620px){
     .layout{ display:block; }
     main.content{ padding:18px 14px 70px; }
     .grid.cols-2, .grid.cols-3{ grid-template-columns:1fr; }
     #a11y-panel{ width:88vw; }
-    /* On a phone there isn't room for the logo, the links and a usable text
-       field at once, so opening search hands the row over to the input and
-       everything else steps aside until it closes. */
+
     .search-wrap.open{ max-width:none; flex:1 1 auto; }
     .search-wrap input{ width:100%; max-width:none; }
     header.search-open .logo,
@@ -531,8 +482,6 @@
     .icon-btn, .header-link{ width:32px; height:32px; }
   }
 
-  /* Touch devices: the chips are comfortable to read at 25px but fiddly to
-     hit, so they get taller without changing the desktop look. */
   @media (hover: none){
     .tag{ padding:7px 12px; }
     .read-more{ padding:8px 0; }
@@ -545,7 +494,6 @@
 <body>
 <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
-<!-- ===================== AGE GATE ===================== -->
 <div id="age-gate">
   <div class="gate-card">
     <div class="wordmark">The<em>Naughty</em>Kettle</div>
@@ -558,7 +506,6 @@
   </div>
 </div>
 
-<!-- ===================== HEADER ===================== -->
 <header class="site-header">
   <button class="icon-btn mobile-filter-btn" id="mobile-filter-toggle" aria-label="Open filters">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
@@ -591,7 +538,7 @@
 <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
 <div class="layout">
-  <!-- ===================== SIDEBAR ===================== -->
+
   <aside class="sidebar" id="sidebar">
     <h3>Sort</h3>
     <select class="sort-select" id="sort-select">
@@ -618,7 +565,6 @@
     <button class="clear-filters" id="clear-filters">Clear all filters</button>
   </aside>
 
-  <!-- ===================== MAIN ===================== -->
   <main class="content">
     <div class="controls-bar">
       <span class="result-count" id="result-count">Loading…</span>
@@ -646,7 +592,6 @@
   </main>
 </div>
 
-<!-- ===================== ACCESSIBILITY PANEL ===================== -->
 <div id="a11y-panel">
   <button class="icon-btn a11y-close" id="a11y-close" aria-label="Close">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -680,23 +625,6 @@
 (function(){
   "use strict";
 
-  /* ------------------------------------------------------------------
-     The Reddit button's icon.
-
-     REDDIT_ICON_IS_FULL_LOGO tells the button whether the artwork brings
-     its own orange disc:
-       true  — Reddit's official icon (the one with the circle). The button
-               turns its own background off and lets the artwork fill it,
-               otherwise orange-on-orange hides all but the white shape.
-       false — a bare mark or the fallback glyph below, drawn on the
-               orange button.
-
-     If the file is missing or misnamed, the glyph in REDDIT_ICON_FALLBACK
-     is used instead, so the button is never blank.
-     ------------------------------------------------------------------ */
-  /* This must match the file in the repo character for character — GitHub
-     Pages serves case-sensitively, so Reddit_Icon_2Color.svg and
-     reddit_icon_2color.svg are two different files as far as it cares. */
   var REDDIT_ICON = '<img src="Reddit_Icon_2Color.svg" alt="">';
   var REDDIT_ICON_IS_FULL_LOGO = true;
 
@@ -733,61 +661,30 @@
   };
   if (!state.audience.size) state.audience = new Set(['F','M','A']);
 
-  var CATEGORY_GROUPS = [
-    { key:'flavor',       label:'Flavor' },
-    { key:'relationship', label:'Relationship' },
-    { key:'feature',      label:'Feature' }
-  ];
   state.sfw = new Set(JSON.parse(localStorage.getItem('tnk_sfw')||'["sfw","nsfw"]'));
   if (!state.sfw.size) state.sfw = new Set(['sfw','nsfw']);
-  state.cats = {};
+  state.cats = new Set();
   (function(){
-    var saved = {};
-    try { saved = JSON.parse(localStorage.getItem('tnk_cats')||'{}') || {}; } catch(e){ saved = {}; }
-    CATEGORY_GROUPS.forEach(function(g){
-      state.cats[g.key] = new Set(Array.isArray(saved[g.key]) ? saved[g.key] : []);
-    });
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem('tnk_cats')||'[]'); } catch(e){ saved = null; }
+    if (Array.isArray(saved)) state.cats = new Set(saved);
   })();
 
   var grid = document.getElementById('grid');
   var resultCount = document.getElementById('result-count');
   var loadingRow = document.getElementById('loading-row');
 
-  /* ==================================================================
-     SEARCH
-
-     Three passes, in descending confidence:
-
-       direct   the word is in the title, a tag, the series or the type,
-                or is a known synonym of one (fdom/femdom, joi/guided
-                masturbation). These are the "exact matches".
-       fuzzy    the word is within a typo or two of a real tag —
-                "whsiper" finds "whisper". Scored lower.
-       related  tags that travel with the ones matched directly, taken
-                from the co-occurrence map build.py ships in the JSON.
-                "sleep aid" pulls in calm, pond, wind chimes. Scored
-                lowest, and never enough on its own to rank as exact.
-
-     A card lands in the exact group if anything matched it directly, and
-     in the related group otherwise, so the two are always separated in
-     the results even when a related hit scores well.
-     ================================================================== */
-
   var FIELD_WEIGHT = { title:10, tag:7, series:6, type:5, description:2 };
   var SOURCE_WEIGHT = { direct:1, synonym:0.9, fuzzy:0.45, related:0.18 };
 
-  /* Without these the related pass swamps everything: expand one common tag
-     into eight friends and nearly every audio matches something, so "garden"
-     would return 220 of 224. A related-only card has to clear a real bar —
-     roughly two related tags rather than one — and the tail is capped. */
-  var RELATED_EXPAND_PER_TAG = 5;   // friends pulled in per directly-matched tag
-  var RELATED_MIN_SCORE = 2.6;      // a single related tag scores ~1.3
+  var RELATED_EXPAND_PER_TAG = 5;
+  var RELATED_MIN_SCORE = 2.6;
   var RELATED_MAX_RESULTS = 24;
 
   var search = {
-    tagList: [],      // every distinct normalised tag in the catalogue
-    related: {},      // tag -> related tags (from build.py)
-    synonymOf: {},    // word -> every word in its synonym group
+    tagList: [],
+    related: {},
+    synonymOf: {},
     ready: false
   };
 
@@ -799,8 +696,6 @@
       .trim();
   }
 
-  /* Crude but effective for this vocabulary: whispers/whispering/whispery
-     all reduce to "whisper", moans/moaning to "moan". */
   function stem(word){
     if (word.length < 5) return word;
     return word
@@ -808,9 +703,6 @@
       .replace(/(.)\1$/, '$1');
   }
 
-  /* Levenshtein, abandoned as soon as it exceeds max — most comparisons
-     bail on the length check alone, which keeps a full vocabulary sweep
-     cheap enough to run on every keystroke. */
   function editDistance(a, b, max){
     if (a === b) return 0;
     if (Math.abs(a.length - b.length) > max) return max + 1;
@@ -848,14 +740,12 @@
       e._tagSet = Object.create(null);
       e._tags.forEach(function(t){ e._tagSet[t] = true; });
       e._cats = [];
-      CATEGORY_GROUPS.forEach(function(g){
-        ((e.categories||{})[g.key] || []).forEach(function(v){
-          var n = normText(v);
-          if (!n) return;
-          e._cats.push(n);
-          if (!e._tagSet[n]) e._tagSet[n] = true;
-          if (!seen[n]) seen[n] = true;
-        });
+      (e.categories || []).forEach(function(v){
+        var n = normText(v);
+        if (!n) return;
+        e._cats.push(n);
+        if (!e._tagSet[n]) e._tagSet[n] = true;
+        if (!seen[n]) seen[n] = true;
       });
       e._words = Object.create(null);
       (e._title + ' ' + e._series + ' ' + e._type + ' ' + e._tags.join(' ') + ' ' + e._cats.join(' '))
@@ -877,8 +767,6 @@
     search.ready = true;
   }
 
-  /* Turn the raw query into weighted terms, each tagged with where it came
-     from so the scorer knows whether a hit counts as exact or related. */
   function expandQuery(raw){
     var phrase = normText(raw);
     if (!phrase) return null;
@@ -886,11 +774,7 @@
     var tokens = phrase.split(' ').filter(function(t){ return t.length > 1; });
     if (!tokens.length) tokens = phrase.split(' ').filter(Boolean);
 
-    /* Audience tags no longer appear on the cards, so a query like "f4m",
-       "ff4a" or just "4m" is answered from the entry's audience field
-       instead. The token still has to be satisfied for the card to count
-       as an exact match, so it behaves like any other word. */
-    var audienceAsk = [];   // {token index, letters}
+    var audienceAsk = [];
     tokens.forEach(function(t, i){
       var m = /^[fma]*4([fmatnb]+)$/.exec(t);
       if (!m) return;
@@ -901,10 +785,7 @@
       if (want.length) audienceAsk.push({ token:i, want:want });
     });
 
-    /* Each term remembers which of the user's words it stands for, so the
-       scorer can tell "matched every word they typed" from "matched one of
-       them". Terms standing for the whole phrase use -1. */
-    var terms = [];          // {text, source, stem, weight, token}
+    var terms = [];
     var added = Object.create(null);
     function add(text, source, weight, token){
       var key = text + '|' + source;
@@ -918,21 +799,17 @@
     add(phrase, 'direct', 1, -1);
     tokens.forEach(function(t, i){ add(t, 'direct', 1, i); });
 
-    // synonyms of the whole phrase and of each word
     (search.synonymOf[phrase] || []).forEach(function(s){ add(s, 'synonym', 1, -1); });
     tokens.forEach(function(t, i){
       (search.synonymOf[t] || []).forEach(function(s){ add(s, 'synonym', 1, i); });
     });
 
-    // typo tolerance, measured against the real tag vocabulary.
-    // A one-character slip is a far better bet than a two-character one,
-    // so it carries more weight rather than being treated the same.
     var fuzzyFound = [];
     tokens.forEach(function(t, i){
       if (t.length < 4) return;
       var budget = t.length <= 5 ? 1 : 2;
       search.tagList.forEach(function(tag){
-        if (tag === t || tag.indexOf(t) !== -1) return;   // already a direct hit
+        if (tag === t || tag.indexOf(t) !== -1) return;
         var d = editDistance(t, tag, budget);
         if (d <= budget){
           add(tag, 'fuzzy', d === 1 ? 1 : 0.5, i);
@@ -941,7 +818,6 @@
       });
     });
 
-    // concepts that travel with whatever matched directly
     var relatedFound = [];
     var directHits = terms
       .filter(function(t){ return t.source === 'direct' || t.source === 'synonym'; })
@@ -960,7 +836,7 @@
   function scoreEntry(e, q){
     var score = 0, phraseHit = false;
     var hitTags = Object.create(null), nearTags = Object.create(null);
-    var tokenHit = [];   // which of the user's words were matched directly
+    var tokenHit = [];
 
     for (var i = 0; i < q.terms.length; i++){
       var term = q.terms[i];
@@ -987,7 +863,6 @@
       if (e._type && e._type.indexOf(term.text) !== -1){ score += FIELD_WEIGHT.type * sw; matched = true; }
       if (e._desc && e._desc.indexOf(term.text) !== -1){ score += FIELD_WEIGHT.description * sw; matched = true; }
 
-      // stem match, so "whispering" still finds "whisper"
       if (!matched && term.stem && term.stem.length > 3 && e._words[term.stem]){
         score += FIELD_WEIGHT.tag * sw * 0.7; matched = true;
       }
@@ -998,7 +873,6 @@
       }
     }
 
-    // "f4m" and friends are matched against the audience rather than the tags
     for (var a = 0; a < q.audienceAsk.length; a++){
       var ask = q.audienceAsk[a];
       var aud = e.audience || [];
@@ -1013,15 +887,12 @@
 
     if (!score) return null;
 
-    /* "gentle fdom" should mean both words, not either — matching only
-       "gentle" puts a card in the related block rather than the exact one.
-       A hit on the whole phrase counts for all of it. */
     var allTokens = q.tokens.length > 0;
     for (var k = 0; k < q.tokens.length; k++){
       if (!tokenHit[k]) { allTokens = false; break; }
     }
     var direct = phraseHit || allTokens;
-    if (direct && q.tokens.length > 1) score *= 1.25;   // reward matching the lot
+    if (direct && q.tokens.length > 1) score *= 1.25;
 
     return { score:score, direct:direct, hitTags:hitTags, nearTags:nearTags };
   }
@@ -1041,7 +912,7 @@
     });
 
     scored.sort(function(a, b){
-      if (a.direct !== b.direct) return a.direct ? -1 : 1;   // exact block first
+      if (a.direct !== b.direct) return a.direct ? -1 : 1;
       if (b.score !== a.score) return b.score - a.score;
       return (b.e.date||'').localeCompare(a.e.date||'');
     });
@@ -1053,8 +924,6 @@
     });
     related = related.slice(0, RELATED_MAX_RESULTS);
 
-    // If nothing matched directly, the looser hits are all there is —
-    // show them as the results rather than as an empty page plus a tail.
     var onlyRelated = !exact.length;
     var final = exact.concat(related);
 
@@ -1067,7 +936,6 @@
     };
   }
 
-  /* ---------------- Age gate ---------------- */
   var gate = document.getElementById('age-gate');
   if (sessionStorage.getItem('tnk_age_ok') === '1') gate.classList.add('hidden');
   document.getElementById('gate-enter').addEventListener('click', function(){
@@ -1075,12 +943,10 @@
     gate.classList.add('hidden');
   });
 
-  /* ---------------- Fetch data ---------------- */
   fetch('./audios.json', {cache:'no-store'})
     .then(function(r){ if(!r.ok) throw new Error('no data'); return r.json(); })
     .then(function(data){
-      /* build.py writes {lastUpdated, totalEntries, types, audios:[…]};
-         a bare array is still accepted so older files keep working. */
+
       if (Array.isArray(data)){
         state.entries = data;
       } else if (data && Array.isArray(data.audios)){
@@ -1119,7 +985,6 @@
     el.title = dt.toLocaleString();
   }
 
-  /* ---------------- Filtering / sorting ---------------- */
   function applyFilters(){
     var raw = state.search.trim();
     var list = state.entries.filter(function(e){
@@ -1180,25 +1045,16 @@
   }
 
   function categoriesAllow(e){
-    var cats = e.categories || {};
-    for (var i = 0; i < CATEGORY_GROUPS.length; i++){
-      var key = CATEGORY_GROUPS[i].key;
-      var picked = state.cats[key];
-      if (!picked || !picked.size) continue;
-      var mine = cats[key] || [];
-      var hit = false;
-      for (var j = 0; j < mine.length; j++){
-        if (picked.has(mine[j])) { hit = true; break; }
-      }
-      if (!hit) return false;
+    if (!state.cats.size) return true;
+    var mine = e.categories || [];
+    for (var i = 0; i < mine.length; i++){
+      if (state.cats.has(mine[i])) return true;
     }
-    return true;
+    return false;
   }
 
   function saveCats(){
-    var out = {};
-    CATEGORY_GROUPS.forEach(function(g){ out[g.key] = Array.from(state.cats[g.key]); });
-    localStorage.setItem('tnk_cats', JSON.stringify(out));
+    localStorage.setItem('tnk_cats', JSON.stringify(Array.from(state.cats)));
   }
 
   function buildSfwFilter(){
@@ -1231,53 +1087,37 @@
     if (!host) return;
     host.innerHTML = '';
 
-    CATEGORY_GROUPS.forEach(function(group){
-      var counts = {};
-      state.entries.forEach(function(e){
-        ((e.categories||{})[group.key] || []).forEach(function(v){
-          counts[v] = (counts[v]||0) + 1;
-        });
-      });
-      var values = Object.keys(counts).sort(function(a,b){
-        return counts[b] - counts[a] || a.toLowerCase().localeCompare(b.toLowerCase());
-      });
-      if (!values.length) return;
-
-      var wrap = document.createElement('div');
-      wrap.className = 'cat-group';
-      wrap.dataset.group = group.key;
-
-      var head = document.createElement('button');
-      head.className = 'cat-head';
-      head.innerHTML = group.label + ' <span class="cat-n">' + values.length + '</span><span class="chev"></span>';
-
-      var list = document.createElement('ul');
-      list.className = 'filter-list cat-list';
-
-      values.forEach(function(v){
-        var li = document.createElement('li');
-        li.className = 'filter-item';
-        li.dataset.value = v;
-        li.innerHTML = '<span>'+escapeHtml(v)+'</span><span class="count">'+counts[v]+'</span>';
-        if (state.cats[group.key].has(v)) li.classList.add('active');
-        li.addEventListener('click', function(){
-          var picked = state.cats[group.key];
-          if (picked.has(v)) picked.delete(v); else picked.add(v);
-          li.classList.toggle('active');
-          head.classList.toggle('has-active', picked.size > 0);
-          saveCats();
-          applyFilters();
-        });
-        list.appendChild(li);
-      });
-
-      head.classList.toggle('has-active', state.cats[group.key].size > 0);
-      if (state.cats[group.key].size) wrap.classList.add('open');
-      head.addEventListener('click', function(){ wrap.classList.toggle('open'); });
-
-      wrap.appendChild(head); wrap.appendChild(list);
-      host.appendChild(wrap);
+    var counts = {};
+    state.entries.forEach(function(e){
+      (e.categories || []).forEach(function(v){ counts[v] = (counts[v]||0) + 1; });
     });
+    var values = Object.keys(counts).sort(function(a,b){
+      return counts[b] - counts[a] || a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+    if (!values.length) return;
+
+    var head = document.createElement('h3');
+    head.textContent = 'Categories';
+
+    var list = document.createElement('ul');
+    list.className = 'cat-list';
+
+    values.forEach(function(v){
+      var li = document.createElement('li');
+      li.className = 'filter-item';
+      li.dataset.value = v;
+      li.innerHTML = '<span>'+escapeHtml(v)+'</span><span class="count">'+counts[v]+'</span>';
+      if (state.cats.has(v)) li.classList.add('active');
+      li.addEventListener('click', function(){
+        if (state.cats.has(v)) state.cats.delete(v); else state.cats.add(v);
+        li.classList.toggle('active');
+        saveCats();
+        applyFilters();
+      });
+      list.appendChild(li);
+    });
+
+    host.appendChild(head); host.appendChild(list);
   }
 
   function buildAudienceFilter(){    var counts = { F:0, M:0, A:0 };
@@ -1294,8 +1134,7 @@
       btn.addEventListener('click', function(){
         if (state.audience.has(key)) state.audience.delete(key);
         else state.audience.add(key);
-        // turning the last one off would leave an empty page; treat that as
-        // "show everything" instead, which is what the reset reads as
+
         if (!state.audience.size) state.audience = new Set(['F','M','A']);
         localStorage.setItem('tnk_audience', JSON.stringify(Array.from(state.audience)));
         document.querySelectorAll('#audience-row .aud-btn').forEach(function(b){
@@ -1345,14 +1184,12 @@
     return '<div class="empty-state"><div class="display">Nothing matches</div>Try clearing filters or search.</div>';
   }
 
-  /* ---------------- Progressive rendering ---------------- */
   function renderNextBatch(){
     var start = state.rendered;
     var next = state.filtered.slice(start, start + state.batchSize);
     var frag = document.createDocumentFragment();
     next.forEach(function(e, i){
-      // the divider goes in at the exact point the related block begins,
-      // whichever batch that index happens to land in
+
       if (state.relatedStart >= 0 && start + i === state.relatedStart){
         var d = document.createElement('div');
         d.className = 'results-divider';
@@ -1373,7 +1210,6 @@
     }
   }, {rootMargin:'400px'}).observe(sentinel);
 
-  /* ---------------- Card builder ---------------- */
   function buildCard(e){
     var card = document.createElement('div');
     card.className = 'card';
@@ -1456,9 +1292,6 @@
   function buildTagsHtml(tags, entry){
     if (!tags.length) return '';
 
-    /* While a search is running, the tags that caused the match are pulled
-       to the front and highlighted, so it's obvious why a card is here —
-       especially in the related block, where the reason isn't the title. */
     var hits = (entry && entry._hitTags) || {};
     var near = (entry && entry._nearTags) || {};
     var searching = !!state.search.trim();
@@ -1504,8 +1337,6 @@
       (needsClamp ? '<button class="read-more">Read more</button>' : '');
   }
 
-  /* One line per credit — writer, editor and the voices on a collab — so a
-     long username never wraps away from the label in front of it. */
   function buildCreditsHtml(e){
     var rows = [];
     if (e.writer) rows.push(creditRow('Written by', [e.writer]));
@@ -1528,8 +1359,6 @@
     return escapeHtml(person.name);
   }
 
-  /* Type is normalised by build.py, but compare loosely so a stray
-     "big collab" typed straight into the sheet still matches. */
   function buildBigCollabHtml(e){
     if (String(e.type||'').trim().toLowerCase() !== 'big collab') return '';
     return '<div class="big-collab-notice">'+
@@ -1586,9 +1415,6 @@
       '<path d="M8 5.5v13a1 1 0 0 0 1.5.87l11-6.5a1 1 0 0 0 0-1.74l-11-6.5A1 1 0 0 0 8 5.5z"/>' +
     '</svg>';
 
-  /* If the icon file can't be loaded — missing, renamed, wrong folder — swap
-     in the built-in glyph so the button still reads as a link. A cached
-     failure can land before this runs, hence the naturalWidth check. */
   function wireIconFallback(card){
     var img = card.querySelector('.link-icon-btn img');
     if (!img) return;
@@ -1613,7 +1439,6 @@
     if (state.favOnly) applyFilters();
   }
 
-  /* ---------------- Utilities ---------------- */
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -1621,16 +1446,13 @@
   }
   function attr(s){ return escapeHtml(s); }
   function formatDate(d){
-    /* "2026-09-10" parsed by new Date() is UTC midnight, which renders as the
-       9th for anyone west of UTC. Build the date from its parts so the day
-       shown is always the day in the sheet. */
+
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d||'').trim());
     var dt = m ? new Date(+m[1], +m[2]-1, +m[3]) : new Date(d);
     if (isNaN(dt.getTime())) return d;
     return dt.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'});
   }
 
-  /* ---------------- Controls binding ---------------- */
   function bindControls(){
     var searchToggle = document.getElementById('search-toggle');
     var searchWrap = document.getElementById('search-wrap');
@@ -1638,10 +1460,10 @@
     var siteHeader = document.querySelector('header.site-header');
     searchToggle.addEventListener('click', function(){
       var open = searchWrap.classList.toggle('open');
-      // the stylesheet uses this to clear the header on small screens
+
       siteHeader.classList.toggle('search-open', open);
       if (open) searchInput.focus();
-      else if (state.search){        // closing the box also clears the query
+      else if (state.search){
         state.search = '';
         searchInput.value = '';
         applyFilters();
@@ -1673,10 +1495,9 @@
       state.sfw = new Set(['sfw','nsfw']);
       localStorage.setItem('tnk_sfw', JSON.stringify(['sfw','nsfw']));
       document.querySelectorAll('#sfw-row .aud-btn').forEach(function(b){ b.classList.add('active'); });
-      CATEGORY_GROUPS.forEach(function(g){ state.cats[g.key].clear(); });
+      state.cats.clear();
       saveCats();
       document.querySelectorAll('#category-filters .filter-item.active').forEach(function(el){ el.classList.remove('active'); });
-      document.querySelectorAll('#category-filters .cat-head').forEach(function(el){ el.classList.remove('has-active'); });
       document.getElementById('fav-toggle').classList.remove('active');
       applyFilters();
     });
@@ -1797,7 +1618,6 @@
 })();
 </script>
 
-<!-- ===================== AMBIENT SEA BACKGROUND ===================== -->
 <script>
 (function(){
   "use strict";
@@ -1818,10 +1638,6 @@
   var motionEnabled;
   var rafId = null;
 
-  /* Reflection is pre-rendered once into an offscreen canvas as a soft,
-     horizontally-feathered column. Each frame we blit it back in thin
-     horizontal bands with a small sinusoidal x-offset, which produces a
-     smooth rippling distortion instead of visible stacked rectangles. */
   var refCanvas = null, refW = 0, refH = 0;
 
   var MOON_X_FRAC = 0.46;
@@ -1870,7 +1686,6 @@
     }
   }
 
-  /* ---- Pre-render the moonlight column (soft, feathered, faint) ---- */
   function buildReflection(){
     refW = Math.max(60 * DPR, Math.min(W * 0.20, 300 * DPR));
     refH = seaH;
@@ -1887,14 +1702,12 @@
     for (var y = 0; y < refH; y++){
       var f = y / refH;
 
-      // Column widens smoothly with distance, easing out so there is no kink.
       var ease = 1 - Math.pow(1 - f, 2.1);
       var halfW = (neckW + (refW / 2 - neckW) * ease) * 0.98;
 
-      // Vertical falloff: brightest just below the horizon, fading to nothing.
       var vFade = Math.pow(1 - f, 1.85);
       var alpha = vFade * 0.20;
-      if (f < 0.035) alpha *= f / 0.035;   // soften the seam at the horizon
+      if (f < 0.035) alpha *= f / 0.035;
       if (alpha <= 0.002) continue;
 
       var g = rc.createLinearGradient(cx - halfW, 0, cx + halfW, 0);
@@ -1925,11 +1738,9 @@
     });
   }
 
-  /* ---- Moon: layered halo + softly shaded disc with a feathered rim ---- */
   function drawMoon(t){
     var pulse = motionEnabled ? (0.92 + 0.08 * Math.sin(t * 0.28)) : 1;
 
-    // Wide ambient halo — very low alpha, many stops for a smooth falloff.
     var wide = ctx.createRadialGradient(moonX, moonY, moonR * 0.6, moonX, moonY, moonR * 12);
     wide.addColorStop(0.00, 'rgba(238,220,180,' + (0.085 * pulse).toFixed(4) + ')');
     wide.addColorStop(0.16, 'rgba(236,216,175,' + (0.044 * pulse).toFixed(4) + ')');
@@ -1939,7 +1750,6 @@
     ctx.fillStyle = wide;
     ctx.beginPath(); ctx.arc(moonX, moonY, moonR * 12, 0, Math.PI * 2); ctx.fill();
 
-    // Tight inner bloom hugging the disc.
     var bloom = ctx.createRadialGradient(moonX, moonY, moonR * 0.9, moonX, moonY, moonR * 3.1);
     bloom.addColorStop(0.00, 'rgba(250,240,214,' + (0.20 * pulse).toFixed(4) + ')');
     bloom.addColorStop(0.40, 'rgba(246,232,200,' + (0.070 * pulse).toFixed(4) + ')');
@@ -1947,8 +1757,6 @@
     ctx.fillStyle = bloom;
     ctx.beginPath(); ctx.arc(moonX, moonY, moonR * 3.1, 0, Math.PI * 2); ctx.fill();
 
-    // Disc — lit from upper-left, with the outermost stop fading to zero so
-    // the rim is anti-aliased rather than a hard circle.
     var disc = ctx.createRadialGradient(
       moonX - moonR * 0.28, moonY - moonR * 0.32, moonR * 0.06,
       moonX, moonY, moonR
@@ -1961,7 +1769,6 @@
     ctx.fillStyle = disc;
     ctx.beginPath(); ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2); ctx.fill();
 
-    // Barely-there maria for texture — keeps it from reading as a flat dot.
     ctx.save();
     ctx.beginPath(); ctx.arc(moonX, moonY, moonR * 0.97, 0, Math.PI * 2); ctx.clip();
     var maria = [
@@ -1985,14 +1792,9 @@
     ctx.restore();
   }
 
-  /* ---- Reflection: blit the pre-rendered column in gently offset bands ---- */
   function drawReflection(t){
     if (!refCanvas) return;
 
-    /* Bands are integer-aligned and strictly adjacent (y1 of one band is y0 of
-       the next), so there is no overlap to double-expose and no gap to read as
-       a dark line — the previous version's horizontal striping came from
-       blitting overlapping bands in 'lighter' mode. */
     var bands = 72;
     var bandH = refH / bands;
 
@@ -2008,12 +1810,11 @@
       var offset = 0, squash = 1, shimmer = 1;
 
       if (motionEnabled){
-        // Two slow, out-of-phase waves keep the sway organic rather than uniform.
-        // Amplitude stays small so adjacent bands never visibly step apart.
+
         var amp = (1.2 + f * 4.2) * DPR;
         offset = (Math.sin(f * 6.5 - t * 0.5) * 0.68 + Math.sin(f * 11.0 - t * 0.29) * 0.32) * amp;
         squash = 1 + Math.sin(f * 8.0 - t * 0.4) * 0.028;
-        // Smooth travelling brightness instead of discrete glint slices.
+
         shimmer = 0.74 + 0.26 * Math.sin(f * 5.2 - t * 0.85);
       }
 
@@ -2030,7 +1831,6 @@
     ctx.restore();
   }
 
-  /* ---- Sea surface: a handful of very faint drifting swell lines ---- */
   function drawSwell(t){
     ctx.save();
     ctx.lineWidth = 1 * DPR;
@@ -2056,9 +1856,6 @@
     var t = (now - t0) / 1000;
     ctx.clearRect(0, 0, W, H);
 
-    // Sky
-    // Sky stays warm up top and cools slightly toward the waterline so the
-    // horizon transition into the blue sea reads naturally.
     var sky = ctx.createLinearGradient(0, 0, 0, horizonY);
     sky.addColorStop(0.00, '#0c0907');
     sky.addColorStop(0.55, '#141010');
@@ -2066,7 +1863,6 @@
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, horizonY);
 
-    // Sea — deep midnight blue, darkening with distance from the horizon.
     var sea = ctx.createLinearGradient(0, horizonY, 0, H);
     sea.addColorStop(0.00, '#0e1a2d');
     sea.addColorStop(0.06, '#101d31');
@@ -2075,7 +1871,6 @@
     ctx.fillStyle = sea;
     ctx.fillRect(0, horizonY, W, seaH);
 
-    // Stars
     stars.forEach(function(s){
       var a = motionEnabled
         ? Math.max(0.05, s.base * (0.6 + 0.4 * Math.sin(t * s.freq + s.phase)))
@@ -2086,7 +1881,6 @@
       ctx.fill();
     });
 
-    // Shooting stars
     if (motionEnabled && now - lastShoot > nextShootDelay){
       spawnShootingStar();
       lastShoot = now;
@@ -2108,7 +1902,6 @@
       ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(tailX, tailY); ctx.stroke();
     });
 
-    // Soft moonlight haze sitting on the horizon
     var haze = ctx.createLinearGradient(0, horizonY - moonR * 5, 0, horizonY + moonR * 3.5);
     haze.addColorStop(0.00, 'rgba(180,196,214,0)');
     haze.addColorStop(0.42, 'rgba(196,206,214,0.038)');
