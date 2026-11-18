@@ -131,8 +131,7 @@ def normalize_type(raw):
 
 AUDIENCE_RE = re.compile(r"^([fma]{1,8})4([fmatnb]{1,8})$", re.I)
 
-CATEGORY_GROUPS = ["flavor", "relationship", "feature"]
-COLUMN_FOR = {"flavor": "Flavor", "relationship": "Relationship", "feature": "Feature"}
+CATEGORY_COLUMN = "Web Category"
 
 
 def split_categories(raw):
@@ -474,9 +473,9 @@ def build(rows):
 
         tags = [t for t in all_tags if not AUDIENCE_RE.fullmatch(t.strip())]
 
-        cats = {g: split_categories(get(COLUMN_FOR[g])) for g in CATEGORY_GROUPS}
-        if not any(cats.values()):
-            notes["no flavor / relationship / feature"] += 1
+        cats = split_categories(get(CATEGORY_COLUMN))
+        if not cats:
+            notes["no web category"] += 1
 
         sfw = parse_sfw(get("SFW"))
         if sfw is None:
@@ -548,10 +547,7 @@ def main():
 
     types = sorted({e["type"] for e in entries})
     tag_index = build_tag_index(entries)
-    category_vocab = {
-        g: sorted({v for e in entries for v in e["categories"][g]}, key=str.lower)
-        for g in CATEGORY_GROUPS
-    }
+    category_vocab = sorted({v for e in entries for v in e["categories"]}, key=str.lower)
     payload = {
         "lastUpdated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "totalEntries": len(entries),
@@ -585,9 +581,11 @@ def main():
     sfw = Counter("SFW" if e["sfw"] is True else "NSFW" if e["sfw"] is False else "unmarked"
                   for e in entries)
     print(f"   sfw        {', '.join(f'{k} {v}' for k, v in sfw.most_common())}")
-    for g in CATEGORY_GROUPS:
-        tagged = sum(1 for e in entries if e["categories"][g])
-        print(f"   {g:10s} {tagged} entries, {len(category_vocab[g])} distinct values")
+    cat_counts = Counter(v for e in entries for v in e["categories"])
+    print(f"   categories {sum(1 for e in entries if e['categories'])} of {len(entries)} entries, "
+          f"{len(category_vocab)} distinct")
+    for k, n in cat_counts.most_common():
+        print(f"      {n:4d}  {k}")
     print(f"   exclusive  {sum(1 for e in entries if e['exclusive'])}")
     print(f"   credits    writer {sum(1 for e in entries if e['writer'])}, "
           f"editor {sum(1 for e in entries if e['editor'])}, "
