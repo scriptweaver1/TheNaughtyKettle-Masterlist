@@ -10,7 +10,7 @@ import urllib.request
 from collections import Counter, defaultdict
 from datetime import datetime, time, timedelta, timezone
 
-SHEET_CSV_URL = os.environ.get("SHEET_CSV_URL", "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0umg8LWxBBPAvbkIMQBoQd1DOFs9FtyRysz1Ye9pnRNQ1XrVNerVBkAxEAg_nfk1YsFO9aQsxBoZT/pub?gid=1460908058&single=true&output=csv")
+SHEET_CSV_URL = os.environ.get("SHEET_CSV_URL", "YOUR_PUBLISHED_CSV_URL_HERE")
 OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "audios.json")
 
 BLANK = {"", "x", "-", "--", "n/a", "na", "none", "#n/a", "#ref!", "?", "tbd"}
@@ -174,11 +174,11 @@ def audience_from_tags(tags):
 def parse_tags(raw):
     if not raw:
         return []
-    bracketed = re.findall(r"\[([^\]]+)\]", raw)
-    parts = bracketed if bracketed else re.split(r"[,•|]", raw)
+    parts = re.findall(r"\[([^\[\]]*)\]", raw)
+    parts += re.split(r"[,;•|]", re.sub(r"\[[^\[\]]*\]", " ", raw))
     out, seen = [], set()
     for part in parts:
-        tag = part.strip().strip("[]()").strip()
+        tag = re.sub(r"\s+", " ", part.strip().strip("[]()").strip(",;|")).strip()
         if not tag or tag.lower() in BLANK or len(tag) > 60:
             continue
         if tag.lower() not in seen:
