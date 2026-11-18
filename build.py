@@ -447,8 +447,6 @@ def build(rows):
             url = normalize_url(get(column))
             if url:
                 links[key] = url
-        if not links:
-            notes["no links at all"] += 1
 
         writers, editors = split_people(get("Writer")), split_people(get("Editor"))
         collab = split_people(get("Collab Partners"))
@@ -456,8 +454,6 @@ def build(rows):
         date = parse_date(get("Date"), date_order)
         if get("Date") and not date:
             notes["date not understood"] += 1
-        elif not date:
-            notes["no date"] += 1
 
         duration, ambiguous = parse_duration(get("Duration"))
         if ambiguous:
@@ -506,8 +502,12 @@ def build(rows):
             "links": links,
         })
 
+    held_back = [e for e in entries if not e["date"] or not e["links"]]
+    entries = [e for e in entries if e["date"] and e["links"]]
+
     entries.sort(key=lambda e: (e["date"] or "0000-00-00"), reverse=True)
-    return entries, notes, date_order
+    held_back.sort(key=lambda e: (e["date"] or "0000-00-00"), reverse=True)
+    return entries, notes, date_order, held_back
 
 
 def main():
@@ -535,8 +535,16 @@ def main():
     print(f"   {len(rows)} rows from {source}")
 
     print("\n2. Processing entries...")
-    entries, notes, date_order = build(rows)
+    entries, notes, date_order, held_back = build(rows)
     print(f"   {len(entries)} entries | slash dates read as {date_order}")
+    if held_back:
+        print(f"\n   held back — an entry needs both a date and at least one link "
+              f"({len(held_back)}):")
+        for e in held_back:
+            why = []
+            if not e["date"]: why.append("no date")
+            if not e["links"]: why.append("no link")
+            print(f"      {e['date'] or '    -     '}  {e['title'][:56]:56s}  ({', '.join(why)})")
 
     types = sorted({e["type"] for e in entries})
     tag_index = build_tag_index(entries)
