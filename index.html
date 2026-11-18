@@ -613,9 +613,6 @@
       <button class="aud-btn active" data-aud="A">4A<span class="aud-count" data-count="A"></span></button>
     </div>
 
-    <h3>Type</h3>
-    <ul class="filter-list" id="type-filter-list"></ul>
-
     <div id="category-filters"></div>
 
     <button class="clear-filters" id="clear-filters">Clear all filters</button>
@@ -723,7 +720,6 @@
     entries: [],
     favourites: new Set(JSON.parse(localStorage.getItem('tnk_favourites')||'[]')),
     search: '',
-    typeFilters: new Set(),
     favOnly: false,
     sort: localStorage.getItem('tnk_sort') || 'newest',
     cols: parseInt(localStorage.getItem('tnk_cols')||'2',10),
@@ -1105,7 +1101,6 @@
     buildSearchIndex(state.tagIndex);
     buildSfwFilter();
     buildAudienceFilter();
-    buildTypeFilters();
     buildCategoryFilters();
     applyFilters();
     bindControls();
@@ -1124,36 +1119,11 @@
     el.title = dt.toLocaleString();
   }
 
-  /* ---------------- Sidebar type filters ---------------- */
-  function buildTypeFilters(){
-    var counts = {};
-    state.entries.forEach(function(e){
-      var t = e.type || 'Uncategorized';
-      counts[t] = (counts[t]||0) + 1;
-    });
-    var list = document.getElementById('type-filter-list');
-    list.innerHTML = '';
-    Object.keys(counts).sort().forEach(function(t){
-      var li = document.createElement('li');
-      li.className = 'filter-item';
-      li.dataset.type = t;
-      li.innerHTML = '<span>'+escapeHtml(t)+'</span><span class="count">'+counts[t]+'</span>';
-      li.addEventListener('click', function(){
-        if (state.typeFilters.has(t)) state.typeFilters.delete(t);
-        else state.typeFilters.add(t);
-        li.classList.toggle('active');
-        applyFilters();
-      });
-      list.appendChild(li);
-    });
-  }
-
   /* ---------------- Filtering / sorting ---------------- */
   function applyFilters(){
     var raw = state.search.trim();
     var list = state.entries.filter(function(e){
       if (state.favOnly && !state.favourites.has(e.id)) return false;
-      if (state.typeFilters.size && !state.typeFilters.has(e.type||'Uncategorized')) return false;
       if (!audienceAllows(e)) return false;
       if (!sfwAllows(e)) return false;
       if (!categoriesAllow(e)) return false;
@@ -1694,7 +1664,6 @@
     });
 
     document.getElementById('clear-filters').addEventListener('click', function(){
-      state.typeFilters.clear();
       state.favOnly = false;
       state.search = '';
       searchInput.value = '';
@@ -1708,7 +1677,6 @@
       saveCats();
       document.querySelectorAll('#category-filters .filter-item.active').forEach(function(el){ el.classList.remove('active'); });
       document.querySelectorAll('#category-filters .cat-head').forEach(function(el){ el.classList.remove('has-active'); });
-      document.querySelectorAll('.filter-item.active').forEach(function(el){ el.classList.remove('active'); });
       document.getElementById('fav-toggle').classList.remove('active');
       applyFilters();
     });
