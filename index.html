@@ -1363,8 +1363,11 @@
     var html = '<div class="card-links">';
     var shown = 0;
 
+    var host = pickAudioHost(links);
+
     for (var i = 0; i < LISTEN_ORDER.length; i++){
       var key = LISTEN_ORDER[i];
+      if (AUDIO_HOSTS.indexOf(key) !== -1 && key !== host) continue;
       var url = links[key];
       if (!url) continue;
       if (key === 'reddit' ? !isRedditPost(url) : NOT_A_PLAYER.test(url)) continue;
@@ -1383,13 +1386,24 @@
     return html;
   }
 
-  var LISTEN_ORDER = ['hotaudio', 'patreon', 'soundgasm', 'audiochan', 'c4s', 'reddit'];
+  var LISTEN_ORDER = ['hotaudio', 'audiochan', 'soundgasm', 'patreon', 'c4s', 'reddit'];
   var LISTEN_LABEL = {
     hotaudio:'Hot Audio', patreon:'Patreon', soundgasm:'Soundgasm',
     audiochan:'Audiochan', c4s:'Clips4Sale', reddit:'Reddit'
   };
 
+  var AUDIO_HOSTS = ['hotaudio', 'audiochan', 'soundgasm'];
+
   var NOT_A_PLAYER = /(^|\.)reddit\.com|redd\.it|scriptbin|pastebin|docs\.google/i;
+
+  function pickAudioHost(links){
+    for (var i = 0; i < AUDIO_HOSTS.length; i++){
+      var key = AUDIO_HOSTS[i];
+      var url = links[key];
+      if (url && !NOT_A_PLAYER.test(url)) return key;
+    }
+    return null;
+  }
 
   function isRedditPost(url){
     return !!url && /(^|\.)reddit\.com|redd\.it/i.test(url);
