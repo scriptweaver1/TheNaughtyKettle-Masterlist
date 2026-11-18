@@ -207,6 +207,32 @@
     background:var(--surface-raised); border-color:var(--gold); color:var(--gold-bright);
   }
   .aud-btn .aud-count{ display:block; font-size:.68rem; font-weight:500; opacity:.7; margin-top:1px; }
+
+  .cat-group{ margin-top:22px; }
+  .cat-head{
+    width:100%; display:flex; align-items:center; gap:8px;
+    background:none; border:none; cursor:pointer; padding:0 0 10px;
+    font-family:var(--font-ui); font-size:.72rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.09em; color:var(--text-faint);
+  }
+  .cat-head:hover{ color:var(--text-dim); }
+  .cat-head .chev{
+    width:9px; height:9px; flex:none; border-right:1.6px solid currentColor;
+    border-bottom:1.6px solid currentColor; transform:rotate(-45deg);
+    transition:transform .18s ease; margin-left:auto; margin-right:2px;
+  }
+  .cat-group.open .cat-head .chev{ transform:rotate(45deg); }
+  .cat-head .cat-n{ color:var(--text-faint); opacity:.75; font-weight:600; letter-spacing:.04em; }
+  .cat-head.has-active{ color:var(--gold-bright); }
+  .cat-group .cat-list{ display:none; max-height:260px; overflow-y:auto; scrollbar-width:thin;
+             scrollbar-color:rgba(212,175,106,.38) transparent; }
+  .cat-list::-webkit-scrollbar{ width:8px; }
+  .cat-list::-webkit-scrollbar-track{ background:transparent; }
+  .cat-list::-webkit-scrollbar-thumb{
+    background:rgba(212,175,106,.28); border-radius:99px;
+    border:2px solid transparent; background-clip:content-box;
+  }
+  .cat-group.open .cat-list{ display:flex; }
   .sidebar h3{ font-family:var(--font-ui); font-size:.72rem; text-transform:uppercase; letter-spacing:.09em; color:var(--text-faint); margin:22px 0 10px; font-weight:700; }
   .sidebar h3:first-child{ margin-top:0; }
   .filter-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
@@ -574,6 +600,12 @@
       <option value="az">A–Z</option>
     </select>
 
+    <h3>Content</h3>
+    <div class="audience-row" id="sfw-row">
+      <button class="aud-btn active" data-sfw="sfw">SFW<span class="aud-count" data-sfwcount="sfw"></span></button>
+      <button class="aud-btn active" data-sfw="nsfw">NSFW<span class="aud-count" data-sfwcount="nsfw"></span></button>
+    </div>
+
     <h3>Audience</h3>
     <div class="audience-row" id="audience-row">
       <button class="aud-btn active" data-aud="F">4F<span class="aud-count" data-count="F"></span></button>
@@ -583,6 +615,8 @@
 
     <h3>Type</h3>
     <ul class="filter-list" id="type-filter-list"></ul>
+
+    <div id="category-filters"></div>
 
     <button class="clear-filters" id="clear-filters">Clear all filters</button>
   </aside>
@@ -703,6 +737,22 @@
   };
   if (!state.audience.size) state.audience = new Set(['F','M','A']);
 
+  var CATEGORY_GROUPS = [
+    { key:'flavor',       label:'Flavor' },
+    { key:'relationship', label:'Relationship' },
+    { key:'feature',      label:'Feature' }
+  ];
+  state.sfw = new Set(JSON.parse(localStorage.getItem('tnk_sfw')||'["sfw","nsfw"]'));
+  if (!state.sfw.size) state.sfw = new Set(['sfw','nsfw']);
+  state.cats = {};
+  (function(){
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem('tnk_cats')||'{}') || {}; } catch(e){ saved = {}; }
+    CATEGORY_GROUPS.forEach(function(g){
+      state.cats[g.key] = new Set(Array.isArray(saved[g.key]) ? saved[g.key] : []);
+    });
+  })();
+
   var grid = document.getElementById('grid');
   var resultCount = document.getElementById('result-count');
   var loadingRow = document.getElementById('loading-row');
@@ -801,8 +851,18 @@
       });
       e._tagSet = Object.create(null);
       e._tags.forEach(function(t){ e._tagSet[t] = true; });
+      e._cats = [];
+      CATEGORY_GROUPS.forEach(function(g){
+        ((e.categories||{})[g.key] || []).forEach(function(v){
+          var n = normText(v);
+          if (!n) return;
+          e._cats.push(n);
+          if (!e._tagSet[n]) e._tagSet[n] = true;
+          if (!seen[n]) seen[n] = true;
+        });
+      });
       e._words = Object.create(null);
-      (e._title + ' ' + e._series + ' ' + e._type + ' ' + e._tags.join(' '))
+      (e._title + ' ' + e._series + ' ' + e._type + ' ' + e._tags.join(' ') + ' ' + e._cats.join(' '))
         .split(' ').forEach(function(w){ if (w) e._words[stem(w)] = true; });
     });
     search.tagList = Object.keys(seen);
@@ -1043,8 +1103,10 @@
 
   function init(){
     buildSearchIndex(state.tagIndex);
+    buildSfwFilter();
     buildAudienceFilter();
     buildTypeFilters();
+    buildCategoryFilters();
     applyFilters();
     bindControls();
     showLastUpdated();
@@ -1093,6 +1155,8 @@
       if (state.favOnly && !state.favourites.has(e.id)) return false;
       if (state.typeFilters.size && !state.typeFilters.has(e.type||'Uncategorized')) return false;
       if (!audienceAllows(e)) return false;
+      if (!sfwAllows(e)) return false;
+      if (!categoriesAllow(e)) return false;
       return true;
     });
 
@@ -1130,9 +1194,6 @@
     }
   }
 
-  /* An audio is shown when any of its listener tags is switched on. The few
-     entries with no audience tag at all are always shown rather than being
-     quietly dropped by a property they never had. */
   function audienceAllows(e){
     var aud = e.audience;
     if (!aud || !aud.length) return true;
@@ -1142,8 +1203,114 @@
     return false;
   }
 
-  function buildAudienceFilter(){
-    var counts = { F:0, M:0, A:0 };
+  function sfwAllows(e){
+    if (e.sfw === true)  return state.sfw.has('sfw');
+    if (e.sfw === false) return state.sfw.has('nsfw');
+    return true;
+  }
+
+  function categoriesAllow(e){
+    var cats = e.categories || {};
+    for (var i = 0; i < CATEGORY_GROUPS.length; i++){
+      var key = CATEGORY_GROUPS[i].key;
+      var picked = state.cats[key];
+      if (!picked || !picked.size) continue;
+      var mine = cats[key] || [];
+      var hit = false;
+      for (var j = 0; j < mine.length; j++){
+        if (picked.has(mine[j])) { hit = true; break; }
+      }
+      if (!hit) return false;
+    }
+    return true;
+  }
+
+  function saveCats(){
+    var out = {};
+    CATEGORY_GROUPS.forEach(function(g){ out[g.key] = Array.from(state.cats[g.key]); });
+    localStorage.setItem('tnk_cats', JSON.stringify(out));
+  }
+
+  function buildSfwFilter(){
+    var counts = { sfw:0, nsfw:0 };
+    state.entries.forEach(function(e){
+      if (e.sfw === true) counts.sfw++;
+      else if (e.sfw === false) counts.nsfw++;
+    });
+    document.querySelectorAll('#sfw-row .aud-count').forEach(function(el){
+      el.textContent = counts[el.dataset.sfwcount] || 0;
+    });
+    document.querySelectorAll('#sfw-row .aud-btn').forEach(function(btn){
+      var key = btn.dataset.sfw;
+      btn.classList.toggle('active', state.sfw.has(key));
+      btn.title = key === 'sfw' ? 'Safe for work' : 'Explicit';
+      btn.addEventListener('click', function(){
+        if (state.sfw.has(key)) state.sfw.delete(key); else state.sfw.add(key);
+        if (!state.sfw.size) state.sfw = new Set(['sfw','nsfw']);
+        localStorage.setItem('tnk_sfw', JSON.stringify(Array.from(state.sfw)));
+        document.querySelectorAll('#sfw-row .aud-btn').forEach(function(b){
+          b.classList.toggle('active', state.sfw.has(b.dataset.sfw));
+        });
+        applyFilters();
+      });
+    });
+  }
+
+  function buildCategoryFilters(){
+    var host = document.getElementById('category-filters');
+    if (!host) return;
+    host.innerHTML = '';
+
+    CATEGORY_GROUPS.forEach(function(group){
+      var counts = {};
+      state.entries.forEach(function(e){
+        ((e.categories||{})[group.key] || []).forEach(function(v){
+          counts[v] = (counts[v]||0) + 1;
+        });
+      });
+      var values = Object.keys(counts).sort(function(a,b){
+        return counts[b] - counts[a] || a.toLowerCase().localeCompare(b.toLowerCase());
+      });
+      if (!values.length) return;
+
+      var wrap = document.createElement('div');
+      wrap.className = 'cat-group';
+      wrap.dataset.group = group.key;
+
+      var head = document.createElement('button');
+      head.className = 'cat-head';
+      head.innerHTML = group.label + ' <span class="cat-n">' + values.length + '</span><span class="chev"></span>';
+
+      var list = document.createElement('ul');
+      list.className = 'filter-list cat-list';
+
+      values.forEach(function(v){
+        var li = document.createElement('li');
+        li.className = 'filter-item';
+        li.dataset.value = v;
+        li.innerHTML = '<span>'+escapeHtml(v)+'</span><span class="count">'+counts[v]+'</span>';
+        if (state.cats[group.key].has(v)) li.classList.add('active');
+        li.addEventListener('click', function(){
+          var picked = state.cats[group.key];
+          if (picked.has(v)) picked.delete(v); else picked.add(v);
+          li.classList.toggle('active');
+          head.classList.toggle('has-active', picked.size > 0);
+          saveCats();
+          applyFilters();
+        });
+        list.appendChild(li);
+      });
+
+      head.classList.toggle('has-active', state.cats[group.key].size > 0);
+      if (state.cats[group.key].size) wrap.classList.add('open');
+      head.addEventListener('click', function(){ wrap.classList.toggle('open'); });
+
+      wrap.appendChild(head); wrap.appendChild(list);
+      host.appendChild(wrap);
+    });
+  }
+
+  function buildAudienceFilter(){    var counts = { F:0, M:0, A:0 };
     state.entries.forEach(function(e){
       (e.audience||[]).forEach(function(a){ if (counts[a] != null) counts[a]++; });
     });
@@ -1534,6 +1701,13 @@
       state.audience = new Set(['F','M','A']);
       localStorage.setItem('tnk_audience', JSON.stringify(['F','M','A']));
       document.querySelectorAll('#audience-row .aud-btn').forEach(function(b){ b.classList.add('active'); });
+      state.sfw = new Set(['sfw','nsfw']);
+      localStorage.setItem('tnk_sfw', JSON.stringify(['sfw','nsfw']));
+      document.querySelectorAll('#sfw-row .aud-btn').forEach(function(b){ b.classList.add('active'); });
+      CATEGORY_GROUPS.forEach(function(g){ state.cats[g.key].clear(); });
+      saveCats();
+      document.querySelectorAll('#category-filters .filter-item.active').forEach(function(el){ el.classList.remove('active'); });
+      document.querySelectorAll('#category-filters .cat-head').forEach(function(el){ el.classList.remove('has-active'); });
       document.querySelectorAll('.filter-item.active').forEach(function(el){ el.classList.remove('active'); });
       document.getElementById('fav-toggle').classList.remove('active');
       applyFilters();
