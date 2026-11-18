@@ -10,7 +10,7 @@ import urllib.request
 from collections import Counter, defaultdict
 from datetime import datetime, time, timedelta, timezone
 
-SHEET_CSV_URL = os.environ.get("SHEET_CSV_URL", "YOUR_PUBLISHED_CSV_URL_HERE")
+SHEET_CSV_URL = os.environ.get("SHEET_CSV_URL", "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0umg8LWxBBPAvbkIMQBoQd1DOFs9FtyRysz1Ye9pnRNQ1XrVNerVBkAxEAg_nfk1YsFO9aQsxBoZT/pub?gid=1460908058&single=true&output=csv")
 OUTPUT_FILE = os.environ.get("OUTPUT_FILE", "audios.json")
 
 BLANK = {"", "x", "-", "--", "n/a", "na", "none", "#n/a", "#ref!", "?", "tbd"}
