@@ -1,23 +1,8 @@
 name: Build audios.json
 
-# Rebuilds audios.json from the published spreadsheet and commits it when
-# something actually changed. Deploys that watch this branch (Cloudflare
-# Pages, Netlify, GitHub Pages) pick the commit up on their own.
-#
-# Setup, once:
-#   1. Google Sheets -> File -> Share -> Publish to web -> the masterlist
-#      sheet -> Comma-separated values (.csv) -> Publish.
-#   2. Repo -> Settings -> Secrets and variables -> Actions -> New
-#      repository secret, named SHEET_CSV_URL, holding that URL.
-#   3. Repo -> Settings -> Actions -> General -> Workflow permissions ->
-#      "Read and write permissions", so the job can push the commit.
-#
-# Run it by hand any time from the Actions tab -> Build audios.json ->
-# Run workflow, which is the quickest way to publish a fresh row.
-
 on:
   schedule:
-    - cron: "0 */3 * * *"   # every 3 hours (UTC)
+    - cron: "0 */3 * * *" # every 3 hours (UTC)
   workflow_dispatch:         # manual run from the Actions tab
     inputs:
       allow_large_drop:
@@ -70,10 +55,6 @@ jobs:
           fi
           python build.py
 
-      # A published sheet that is momentarily unavailable, renamed, or
-      # unshared can come back as a valid but nearly empty CSV. Committing
-      # that would silently empty the site, so a large drop stops the run
-      # and leaves the previous audios.json in place.
       - name: Sanity-check the result
         env:
           BEFORE: ${{ steps.before.outputs.count }}
