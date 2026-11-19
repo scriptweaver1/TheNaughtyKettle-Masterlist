@@ -1,5 +1,5 @@
 {
- "lastUpdated": "2026-11-19T22:43:31Z",
+ "lastUpdated": "2026-11-19T22:47:07Z",
  "totalEntries": 242,
  "types": [
   "Big Collab",
@@ -34,7 +34,7 @@
    "a little sad": 2,
    "addiction": 2,
    "affectionate": 3,
-   "affirmations": 4,
+   "affirmations": 5,
    "aftercare": 6,
    "afterglow": 2,
    "aftershocks": 2,
@@ -49,7 +49,7 @@
    "arm got tired": 2,
    "art": 2,
    "art philosophy": 8,
-   "asmr": 7,
+   "asmr": 8,
    "ass": 3,
    "audio layers": 2,
    "audio postcard": 2,
@@ -69,7 +69,7 @@
    "bimbo": 2,
    "bird songs": 3,
    "bird watching": 2,
-   "birds": 34,
+   "birds": 35,
    "biting": 3,
    "bj": 2,
    "blow job": 2,
@@ -80,12 +80,13 @@
    "bondage": 6,
    "bounce on it": 2,
    "bravery": 2,
+   "breath": 2,
    "breathing": 2,
    "breathy": 31,
    "breed me": 2,
    "breeding": 11,
    "calm": 17,
-   "calming": 9,
+   "calming": 10,
    "cei": 2,
    "cheating": 5,
    "chickens": 5,
@@ -100,7 +101,7 @@
    "collar": 5,
    "college": 2,
    "comedy": 2,
-   "comfort": 9,
+   "comfort": 10,
    "coming down together": 2,
    "confession": 6,
    "conglomerate": 2,
@@ -119,7 +120,7 @@
    "crickets": 4,
    "crush": 2,
    "crying": 6,
-   "cuddling": 5,
+   "cuddling": 6,
    "cum as lube": 2,
    "cum eating": 2,
    "cum for me": 3,
@@ -196,13 +197,13 @@
    "fsub": 24,
    "fuck me": 7,
    "fwb": 2,
-   "garden": 41,
+   "garden": 42,
    "gecko": 2,
-   "gentle": 19,
+   "gentle": 20,
    "gentle fdom": 14,
    "gfe": 9,
    "giggle": 10,
-   "giggles": 37,
+   "giggles": 38,
    "giggling": 2,
    "girlcock": 9,
    "girlfriend": 2,
@@ -540,11 +541,14 @@
    "yoga mat": 3,
    "yoga pants": 3,
    "you": 5,
+   "you are enough": 2,
    "your toy isn't enough": 2
   },
   "related": {
    "affirmations": [
     "wholesome",
+    "calming",
+    "gentle",
     "garden",
     "nature",
     "improv"
@@ -692,8 +696,8 @@
     "garden",
     "improv",
     "nature",
-    "wind chimes",
     "sfw",
+    "wind chimes",
     "calm",
     "descriptive",
     "soft"
@@ -746,14 +750,14 @@
     "nature"
    ],
    "calming": [
+    "affirmations",
     "morning voice",
     "sleep aid",
+    "gentle",
     "descriptive",
     "wind chimes",
-    "nature",
-    "gentle",
     "sfw",
-    "kissing"
+    "nature"
    ],
    "cheating": [
     "script fill"
@@ -803,11 +807,11 @@
     "reassurance",
     "gfe",
     "little bird",
+    "cuddling",
     "wholesome",
     "sweet",
-    "wind chimes",
     "garden",
-    "calm"
+    "wind chimes"
    ],
    "confession": [
     "blowjob",
@@ -909,11 +913,13 @@
     "improv"
    ],
    "cuddling": [
+    "comfort",
     "kissing",
     "wind chimes",
     "giggles",
-    "nature",
     "improv",
+    "garden",
+    "nature",
     "moaning"
    ],
    "cum together": [
@@ -1009,8 +1015,8 @@
     "moaning"
    ],
    "descriptive": [
-    "birds",
     "omp",
+    "birds",
     "calm",
     "sleep aid",
     "oil",
@@ -1215,8 +1221,8 @@
     "edging"
    ],
    "garden": [
-    "nature",
     "improv",
+    "nature",
     "birds",
     "wind chimes",
     "sfw",
@@ -1226,12 +1232,12 @@
    ],
    "gentle": [
     "soft",
+    "garden",
     "morning voice",
     "nature",
-    "garden",
+    "sfw",
+    "birds",
     "wind chimes",
-    "wind",
-    "relaxing",
     "improv"
    ],
    "gentle fdom": [
@@ -1267,11 +1273,11 @@
    "giggles": [
     "wet sounds",
     "moaning",
+    "improv",
     "shaking",
     "dildo",
-    "improv",
-    "oil",
     "quiver",
+    "oil",
     "overstim"
    ],
    "girlcock": [
@@ -1617,8 +1623,8 @@
     "speaker orgasm"
    ],
    "morning voice": [
-    "calming",
     "pondification",
+    "calming",
     "nature",
     "hopeful",
     "gentle",
@@ -2117,11 +2123,11 @@
    "sfw": [
     "calm",
     "sleep aid",
-    "nature",
     "birds",
+    "nature",
+    "garden",
     "relaxing",
     "pond",
-    "garden",
     "improv"
    ],
    "shaking": [
@@ -2506,13 +2512,13 @@
     "birds"
    ],
    "wind": [
+    "sfw",
     "gentle",
     "garden",
-    "sfw",
     "wind chimes",
     "sleep aid",
-    "birds",
     "nature",
+    "birds",
     "improv"
    ],
    "wind chime": [
@@ -2876,16 +2882,29 @@
    "duration": "16:56",
    "series": null,
    "type": "Improv",
-   "audience": [
-    "A"
-   ],
+   "audience": [],
    "sfw": true,
    "categories": [
     "Gentle"
    ],
    "tags": [
     "SFW",
-    "Improv"
+    "Improv",
+    "Comfort",
+    "Calming",
+    "Affirmations",
+    "Gentle",
+    "Cuddling",
+    "Head on my Chest",
+    "Rest",
+    "Garden",
+    "Birds",
+    "Wisdom From Nature",
+    "You Are Enough",
+    "I See You",
+    "Breath",
+    "Giggles",
+    "ASMR"
    ],
    "description": "You sit with your VA girlfriend by the pond after a hard day. She gives you permission to simply rest while she bird watches, talk about creativity, and change. It's been a long week, hasn't it? Listen to the garden for today's lesson about patience.",
    "image": null,
