@@ -37,6 +37,8 @@
     --audiochan:#7cb8a8;
     --hotaudio:#1f4f8f;
     --c4s:#c76fa8;
+    --throne:#9b7ede;
+    --bluesky:#3b90f0;
     --script:#8fae8b;
     --radius:14px;
     --radius-sm:9px;
@@ -155,9 +157,20 @@
   }
   .header-link-reddit{ color:var(--reddit); }
   .header-link-patreon{ color:var(--patreon); }
+  .header-link-throne{ color:var(--throne); }
+  .header-link-audiochan{ color:var(--audiochan); }
+  .header-link-bluesky{ color:var(--bluesky); }
   .header-link:hover{ background:currentColor; }
   .header-link:hover span{ color:#140f0c; }
   .header-link svg{ width:15px; height:15px; flex:none; }
+
+  .sidebar-social{ display:none; margin-top:26px; }
+  .sidebar-links{ flex-wrap:wrap; gap:7px; }
+  .sidebar-links .header-link{
+    width:auto; height:auto; padding:7px 13px; border-radius:999px;
+    justify-content:flex-start; font-size:.78rem;
+  }
+  .sidebar-links .header-link span{ display:inline; }
 
   .layout{ display:flex; align-items:flex-start; max-width:1400px; margin:0 auto; position:relative; }
   aside.sidebar{
@@ -198,7 +211,7 @@
   .aud-btn .aud-count{ display:block; font-size:.68rem; font-weight:500; opacity:.7; margin-top:1px; }
 
   #category-filters{ margin-top:22px; }
-  #category-filters h3{ margin-top:0; }
+  #category-filters h3:first-child{ margin-top:0; }
   .cat-list{
     list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px;
     max-height:320px; overflow-y:auto; scrollbar-width:thin;
@@ -457,8 +470,9 @@
 
     .search-wrap.open{ max-width:none; flex:1 1 auto; }
     .search-wrap input{ width:100%; max-width:none; }
-    header.search-open .logo,
-    header.search-open .header-links{ display:none; }
+    header.search-open .logo{ display:none; }
+    #header-links{ display:none; }
+    .sidebar-social{ display:block; }
 
     header.site-header{ gap:7px; padding:11px 10px; }
     .logo{ font-size:1.06rem; }
@@ -508,18 +522,7 @@
   </button>
   <a class="logo" href="#">The<em>Naughty</em>Kettle</a>
   <div class="header-spacer"></div>
-  <div class="header-links" id="header-links">
-    <a class="header-link header-link-reddit" id="link-reddit"
-       href="https://www.reddit.com/user/theNaughtyKettle" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.7 9.7 0 0 1-2.8-.4L4 21l1.6-4.1A8.1 8.1 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/></svg>
-      <span>Reddit</span>
-    </a>
-    <a class="header-link header-link-patreon" id="link-patreon"
-       href="https://www.patreon.com/TheNaughtyKettle" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16M10 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/></svg>
-      <span>Patreon</span>
-    </a>
-  </div>
+  <div class="header-links" id="header-links"></div>
   <div class="search-wrap" id="search-wrap">
     <input type="text" id="search-input" placeholder="Search titles, tags, series…">
   </div>
@@ -559,6 +562,11 @@
     <div id="category-filters"></div>
 
     <button class="clear-filters" id="clear-filters">Clear all filters</button>
+
+    <div class="sidebar-social" id="sidebar-links-wrap">
+      <h3>Where to find me</h3>
+      <div class="header-links sidebar-links" id="sidebar-links"></div>
+    </div>
   </aside>
 
   <main class="content">
@@ -647,11 +655,19 @@
 
   state.sfw = new Set(JSON.parse(localStorage.getItem('tnk_sfw')||'["sfw","nsfw"]'));
   if (!state.sfw.size) state.sfw = new Set(['sfw','nsfw']);
-  state.cats = new Set();
+  var FILTER_GROUPS = [
+    { key:'web',  label:'Categories', values:function(e){ return e.categories || []; } },
+    { key:'type', label:'Type',       values:function(e){ return e.type ? [e.type] : []; } }
+  ];
+
+  state.cats = {};
   (function(){
-    var saved = null;
-    try { saved = JSON.parse(localStorage.getItem('tnk_cats')||'[]'); } catch(e){ saved = null; }
-    if (Array.isArray(saved)) state.cats = new Set(saved);
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem('tnk_cats')||'{}') || {}; } catch(e){ saved = {}; }
+    if (Array.isArray(saved)) saved = { web: saved };
+    FILTER_GROUPS.forEach(function(g){
+      state.cats[g.key] = new Set(Array.isArray(saved[g.key]) ? saved[g.key] : []);
+    });
   })();
 
   var grid = document.getElementById('grid');
@@ -952,6 +968,7 @@
     buildSfwFilter();
     buildAudienceFilter();
     buildCategoryFilters();
+    buildSocialLinks();
     applyFilters();
     bindControls();
     showLastUpdated();
@@ -1029,16 +1046,23 @@
   }
 
   function categoriesAllow(e){
-    if (!state.cats.size) return true;
-    var mine = e.categories || [];
-    for (var i = 0; i < mine.length; i++){
-      if (state.cats.has(mine[i])) return true;
+    for (var g = 0; g < FILTER_GROUPS.length; g++){
+      var group = FILTER_GROUPS[g];
+      var picked = state.cats[group.key];
+      if (!picked || !picked.size) continue;
+      var mine = group.values(e), hit = false;
+      for (var i = 0; i < mine.length; i++){
+        if (picked.has(mine[i])) { hit = true; break; }
+      }
+      if (!hit) return false;
     }
-    return false;
+    return true;
   }
 
   function saveCats(){
-    localStorage.setItem('tnk_cats', JSON.stringify(Array.from(state.cats)));
+    var out = {};
+    FILTER_GROUPS.forEach(function(g){ out[g.key] = Array.from(state.cats[g.key]); });
+    localStorage.setItem('tnk_cats', JSON.stringify(out));
   }
 
   function buildSfwFilter(){
@@ -1066,42 +1090,80 @@
     });
   }
 
+  var SOCIAL_LINKS = [
+    { key:'reddit',    label:'Reddit',    url:'https://www.reddit.com/user/theNaughtyKettle',
+      title:'Reddit',
+      icon:'<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.7 9.7 0 0 1-2.8-.4L4 21l1.6-4.1A8.1 8.1 0 0 1 3 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/>' },
+    { key:'patreon',   label:'Patreon',   url:'https://www.patreon.com/TheNaughtyKettle',
+      title:'Patreon',
+      icon:'<path d="M4 4v16M10 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/>' },
+    { key:'audiochan', label:'Audiochan', url:'https://audiochan.com/u/theNaughtyKettle',
+      title:'Audiochan',
+      icon:'<path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 11v2"/>' },
+    { key:'throne',    label:'Throne',    url:'https://throne.com/thenaughtykettle',
+      title:'Throne wishlist',
+      icon:'<path d="M20 12v8H4v-8M3 7l4 3 5-6 5 6 4-3-2 5H5L3 7z"/>' },
+    { key:'bluesky',   label:'Bluesky',   url:'https://bsky.app/profile/thenaughtykettle.bsky.social',
+      title:'Bluesky',
+      icon:'<path d="M12 19c-2.5-4-7-5.6-8.3-9.2C2.8 7.2 4 5 6.2 5 8.6 5 10.8 7.4 12 10c1.2-2.6 3.4-5 5.8-5 2.2 0 3.4 2.2 2.5 4.8C19 13.4 14.5 15 12 19z"/>' }
+  ];
+
+  function buildSocialLinks(){
+    var html = SOCIAL_LINKS.map(function(l){
+      return '<a class="header-link header-link-'+l.key+'" href="'+attr(l.url)+'" '+
+             'target="_blank" rel="noopener" title="'+attr(l.title)+'" '+
+             'aria-label="'+attr(l.title)+'">'+
+             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '+
+             'stroke-linecap="round" stroke-linejoin="round">'+l.icon+'</svg>'+
+             '<span>'+escapeHtml(l.label)+'</span></a>';
+    }).join('');
+    ['header-links', 'sidebar-links'].forEach(function(id){
+      var host = document.getElementById(id);
+      if (host) host.innerHTML = html;
+    });
+  }
+
   function buildCategoryFilters(){
     var host = document.getElementById('category-filters');
     if (!host) return;
     host.innerHTML = '';
 
-    var counts = {};
-    state.entries.forEach(function(e){
-      (e.categories || []).forEach(function(v){ counts[v] = (counts[v]||0) + 1; });
-    });
-    var values = Object.keys(counts).sort(function(a,b){
-      return counts[b] - counts[a] || a.toLowerCase().localeCompare(b.toLowerCase());
-    });
-    if (!values.length) return;
-
-    var head = document.createElement('h3');
-    head.textContent = 'Categories';
-
-    var list = document.createElement('ul');
-    list.className = 'cat-list';
-
-    values.forEach(function(v){
-      var li = document.createElement('li');
-      li.className = 'filter-item';
-      li.dataset.value = v;
-      li.innerHTML = '<span>'+escapeHtml(v)+'</span><span class="count">'+counts[v]+'</span>';
-      if (state.cats.has(v)) li.classList.add('active');
-      li.addEventListener('click', function(){
-        if (state.cats.has(v)) state.cats.delete(v); else state.cats.add(v);
-        li.classList.toggle('active');
-        saveCats();
-        applyFilters();
+    FILTER_GROUPS.forEach(function(group){
+      var counts = {};
+      state.entries.forEach(function(e){
+        group.values(e).forEach(function(v){ counts[v] = (counts[v]||0) + 1; });
       });
-      list.appendChild(li);
-    });
+      var values = Object.keys(counts).sort(function(a, b){
+        return counts[b] - counts[a] || a.toLowerCase().localeCompare(b.toLowerCase());
+      });
+      if (!values.length) return;
 
-    host.appendChild(head); host.appendChild(list);
+      var picked = state.cats[group.key];
+
+      var head = document.createElement('h3');
+      head.textContent = group.label;
+
+      var list = document.createElement('ul');
+      list.className = 'cat-list';
+      list.dataset.group = group.key;
+
+      values.forEach(function(v){
+        var li = document.createElement('li');
+        li.className = 'filter-item';
+        li.dataset.value = v;
+        li.innerHTML = '<span>'+escapeHtml(v)+'</span><span class="count">'+counts[v]+'</span>';
+        if (picked.has(v)) li.classList.add('active');
+        li.addEventListener('click', function(){
+          if (picked.has(v)) picked.delete(v); else picked.add(v);
+          li.classList.toggle('active');
+          saveCats();
+          applyFilters();
+        });
+        list.appendChild(li);
+      });
+
+      host.appendChild(head); host.appendChild(list);
+    });
   }
 
   function buildAudienceFilter(){    var counts = { F:0, M:0, A:0 };
@@ -1482,7 +1544,7 @@
       state.sfw = new Set(['sfw','nsfw']);
       localStorage.setItem('tnk_sfw', JSON.stringify(['sfw','nsfw']));
       document.querySelectorAll('#sfw-row .aud-btn').forEach(function(b){ b.classList.add('active'); });
-      state.cats.clear();
+      FILTER_GROUPS.forEach(function(g){ state.cats[g.key].clear(); });
       saveCats();
       document.querySelectorAll('#category-filters .filter-item.active').forEach(function(el){ el.classList.remove('active'); });
       document.getElementById('fav-toggle').classList.remove('active');
